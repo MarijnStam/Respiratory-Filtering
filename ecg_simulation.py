@@ -45,11 +45,11 @@ def sine_generator(fs, sinefreq, duration):
 
 # Filter requirements.
 order = 5       # Filter order
-fs = 1000       # sample rate, Hz
+fs = 60       # sample rate, Hz
 
 
 # The Filter class holds all our filters, we can pass our data to a filter in this class and we get the filtered result.
-filterClass = filters.Filters(fs)
+filterInterface = filters.Filters(fs)
 
 
 print('Simulating heart ecg')
@@ -103,21 +103,40 @@ respitory_sampled = signal.resample(sine_respitory, int(num_samples))
 # note: check if this is correct: not sure if there should be negative bit values. 
 adc_bit_resolution = 1024
 ecg =  adc_bit_resolution * ecg_sampled
-ecg_with_resp =  (ecg_sampled + respitory_sampled) * adc_bit_resolution
-ecg_filtered = filterClass.highPass(ecg_with_resp, cutoff=0.3, order=5)
+ecg_with_resp =  (ecg_sampled + respitory_sampled + mains_sampled) * adc_bit_resolution
+ecg_filtered_high = filterInterface.highPass(ecg_with_resp, cutoff=0.3, order=5)
 
-
+ecg_filtered_high_low = filterInterface.lowPass(ecg_filtered_high, cutoff=7, order=5)
 
 # Plot the graphs
-plt.subplot(2,1,1)
+
+plt.figure('ECG Filtering')
+
+plt.subplot(4, 1, 1)
+plt.plot(ecg_template)
+plt.ylabel('bit value')
+plt.title('Original sampled ECG')
+plt.xticks(color='w')
+
+plt.subplot(4,1,2)
 plt.plot(ecg_with_resp)
 plt.ylabel('bit value')
-plt.title('Noisy bpm with added 20Hz signal')
+plt.title('Noisy ECG with added 0.2Hz signal and mains hum (50Hz)')
+plt.xticks(color='w')
 
-plt.subplot(2,1,2)
-plt.plot(ecg_filtered)
+plt.subplot(4,1,3)
+plt.plot(ecg_filtered_high)
 plt.ylabel('bit value')
 plt.title('Highpass filtered signal')
+plt.xticks(color='w')
+
+plt.subplot(4,1,4)
+plt.plot(ecg_filtered_high_low)
+plt.ylabel('bit value')
+plt.xlabel('Sample')
+plt.title('High and lowpassed filtered signal')
+plt.xticks(color='w')
+
 
 
 plt.show()
