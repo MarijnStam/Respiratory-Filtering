@@ -45,7 +45,7 @@ def sine_generator(fs, sinefreq, duration):
 
 # Filter requirements.
 order = 5       # Filter order
-fs = 60       # sample rate, Hz
+fs = 500      # sample rate, Hz
 
 
 # The Filter class holds all our filters, we can pass our data to a filter in this class and we get the filtered result.
@@ -104,9 +104,11 @@ respitory_sampled = signal.resample(sine_respitory, int(num_samples))
 adc_bit_resolution = 1024
 ecg =  adc_bit_resolution * ecg_sampled
 ecg_with_resp =  (ecg_sampled + respitory_sampled + mains_sampled) * adc_bit_resolution
-ecg_filtered_high = filterInterface.highPass(ecg_with_resp, cutoff=0.3, order=5)
+ecg_filtered_high = filterInterface.highPass(ecg_with_resp, cutoff=0.3, order=3)
 
-ecg_filtered_high_low = filterInterface.lowPass(ecg_filtered_high, cutoff=7, order=5)
+ecg_filtered_low = filterInterface.lowPass(ecg_with_resp, cutoff=7, order=3)
+
+ecg_filtered_median = filterInterface.medianFilter(ecg_with_resp)
 
 # Plot the graphs
 
@@ -131,10 +133,10 @@ plt.title('Highpass filtered signal')
 plt.xticks(color='w')
 
 plt.subplot(4,1,4)
-plt.plot(ecg_filtered_high_low)
+plt.plot(ecg_filtered_low)
 plt.ylabel('bit value')
 plt.xlabel('Sample')
-plt.title('High and lowpassed filtered signal')
+plt.title('Lowpassed filtered signal')
 plt.xticks(color='w')
 
 

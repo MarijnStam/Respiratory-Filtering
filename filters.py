@@ -31,18 +31,31 @@ import numpy
 
 class Filters:
 
+
+    """
+    Initialize the filter class with a given sampling rate. This class is made with the idea of being a simple interface to 
+    call a number of filters with and compare how they function. The filters are meant to be applied to the same source signal
+    so the sampling rate is function independent and identical over the entire object. 
+    """
     def __init__(self, sampling_rate):
         self.sampling_rate = sampling_rate
         self.nyquist_freq = sampling_rate / 2
-    
-    def highPass(self, data, cutoff, order):
-        normal_cutoff = cutoff / self.nyquist_freq
 
-        b, a = signal.butter(order, normal_cutoff, btype='high', analog=False)
-        filtered_data = signal.filtfilt(b, a, data)
 
-        return filtered_data
-
+    """ 
+    -----------------------------------------------------------------------------------------------------------------------------
+    Low-pass filter
+    A low-pass (in this case a Butterworth) filter, passes "all" frequencies below a given cuttoff frequency and filters the 
+    frequencies above this cutoff. The order defines the steepness of the cutoff. 
+    Useful for filtering recurrent noise at high frequency rates or to prevent aliasing. https://en.wikipedia.org/wiki/Butterworth_filter
+    @Parameters: 
+        data:       The array to be filtered
+        cutoff:     Desired cutoff frequency
+        order:      Order of the filter
+    @Returns
+        Array with low-pass filter applied
+    -----------------------------------------------------------------------------------------------------------------------------
+    """
     def lowPass(self, data, cutoff, order):
         normal_cutoff = cutoff / self.nyquist_freq
 
@@ -52,3 +65,44 @@ class Filters:
         return filtered_data
 
 
+
+
+    """ 
+    -----------------------------------------------------------------------------------------------------------------------------
+    High-pass filter
+    A high-pass filter functions as the opposite of a low-pass filter. It passes frequencies above a given cutoff and filters 
+    frequencies below this cutoff. This filter is a modification of the Butterworth (low-pass) filter. 
+    @Parameters: 
+        data:       The array to be filtered
+        cutoff:     Desired cutoff frequency
+        order:      Order of the filter
+    @Returns
+        Array with high-pass filter applied
+    -----------------------------------------------------------------------------------------------------------------------------
+    """
+    def highPass(self, data, cutoff, order):
+        normal_cutoff = cutoff / self.nyquist_freq
+
+        b, a = signal.butter(order, normal_cutoff, btype='high', analog=False)
+        filtered_data = signal.filtfilt(b, a, data)
+
+        return filtered_data
+
+
+
+
+
+    """ 
+    -----------------------------------------------------------------------------------------------------------------------------
+    Median filter 
+    Median filters excel in filtering out random noise. It functions by averageing the i-1, i and i+1 values of a given array and 
+    replacing i by the found median of 
+    those 3 values. In our case, with lots of recurring and periodic noise, the median filter is not very effective.
+    @Parameters: 
+        data:       The array to be filtered
+    @Returns
+        Array with median filter applied
+    -----------------------------------------------------------------------------------------------------------------------------
+    """
+    def medianFilter(self, data):
+        return signal.medfilt(data)
