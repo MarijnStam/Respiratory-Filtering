@@ -27,7 +27,6 @@
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 import scipy.signal as signal
-import numpy
 
 class Filters:
 
@@ -56,7 +55,7 @@ class Filters:
         Array with low-pass filter applied
     -----------------------------------------------------------------------------------------------------------------------------
     """
-    def lowPass(self, data, cutoff, order):
+    def low_pass(self, data, cutoff, order):
         normal_cutoff = cutoff / self.nyquist_freq
 
         b, a = signal.butter(order, normal_cutoff, btype='low', analog=False)
@@ -80,7 +79,7 @@ class Filters:
         Array with high-pass filter applied
     -----------------------------------------------------------------------------------------------------------------------------
     """
-    def highPass(self, data, cutoff, order):
+    def high_pass(self, data, cutoff, order):
         normal_cutoff = cutoff / self.nyquist_freq
 
         b, a = signal.butter(order, normal_cutoff, btype='high', analog=False)
@@ -104,5 +103,5 @@ class Filters:
         Array with median filter applied
     -----------------------------------------------------------------------------------------------------------------------------
     """
-    def medianFilter(self, data):
+    def median_filter(self, data):
         return signal.medfilt(data)
