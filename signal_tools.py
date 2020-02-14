@@ -27,8 +27,8 @@
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 import matplotlib.pyplot as plt
-import scipy.fftpack as fourier
 import numpy as np
+import scipy.fftpack as fourier
 
 #Fourier Transforms
 
@@ -56,3 +56,8 @@ class SignalTools:
         plt.xlabel('Frequency (Hz)')
         plt.ylabel('Amplitude')
         plt.show()
+
+
+##TODO
+# TRY FFT OVER SMALLER TIME PERIOD RATHER THAN ENTIRE WAVEFORM
+# TRY ADDING ALL THE RESULTING FREQUENCIES IN HZ AS A SUM SINE WAVE

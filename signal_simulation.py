@@ -49,7 +49,7 @@ def sine_generator(sample_rate, sinefreq, duration):
 order = 5       # Filter order
 sample_rate = 5000    # sample rate, Hz
 
-# The rest between two beats
+# The rest between two hearbeats, heartbeats will be simulated in the form of an ECG to add artifacts to the respiratory signal.
 samples_rest = 10
 
 # Simulated Beats per minute rate
@@ -63,7 +63,6 @@ adc_bit_resolution = 1024
 # Simulated period of time in seconds that the ecg is captured in
 capture_length = 20
 
-print('Simulating heart ecg')
 
 # ---------------------------Start of all scripting logic--------------------------------
 # ---------------------------------------------------------------------------------------
@@ -88,13 +87,13 @@ num_heart_beats = int(capture_length * bps)
 ecg_template = np.tile(pqrst_full , num_heart_beats)
 
 
-# Create sine waves for respistory noise (.2Hz) and for mains hum (50Hz)
+# Create sine waves for respiratory signal (.2Hz) and for mains hum (50Hz)
 sine_respitory = sine_generator(sample_rate, .2, capture_length)
 sine_mains = sine_generator(sample_rate, 50., capture_length)
 
 # Add random (gaussian distributed) noise 
 noise = np.random.normal(0, 0.05, len(ecg_template))
-ecg_template_noisy = noise + ecg_template 
+
 
 
 # Simulate an ADC by sampling the noisy ecg template to produce the values
@@ -103,24 +102,22 @@ ecg_template_noisy = noise + ecg_template
 
 num_samples = sample_rate * capture_length
 
-ecg_sampled = signal.resample(ecg_template_noisy, int(num_samples))
-ecg_sampled_clean = signal.resample(ecg_template, int(num_samples))
+ecg_sampled = signal.resample(ecg_template, int(num_samples))
 mains_sampled = signal.resample(sine_mains, int(num_samples))
-respitory_sampled = signal.resample(sine_respitory, int(num_samples))
+respiratory_sampled = signal.resample(sine_respitory, int(num_samples))
 
 # Scale the normalised amplitude of the sampled ecg to whatever the ADC 
 # bit resolution is
 # note: check if this is correct: not sure if there should be negative bit values. 
 
-ecg_gaussian =  adc_bit_resolution * ecg_sampled
-ecg_clean = adc_bit_resolution * ecg_sampled_clean
-ecg_noisy =  (ecg_sampled + mains_sampled + respitory_sampled) * adc_bit_resolution
+respiratory_clean = adc_bit_resolution * respiratory_sampled
+respiratory_noisy =  (respiratory_sampled + mains_sampled + ecg_sampled) * adc_bit_resolution
 
 #Apply each filter individually (NOT SEQUENTIALLY)
-ecg_filtered_high = filterInterface.high_pass(ecg_noisy, cutoff=0.3, order=3)
-ecg_filtered_low = filterInterface.low_pass(ecg_noisy, cutoff=7, order=3)
-ecg_filtered_median = filterInterface.median_filter(ecg_noisy)
-ecg_full_filter = filterInterface.low_pass(ecg_filtered_high, cutoff=7, order=3)
+respiratory_filtered_high = filterInterface.high_pass(respiratory_noisy, cutoff=0.3, order=3)
+respiratory_filtered_low = filterInterface.low_pass(respiratory_noisy, cutoff=1, order=3)
+respiratory_filtered_median = filterInterface.median_filter(respiratory_noisy)
+respiratory_full_filter = filterInterface.low_pass(respiratory_filtered_high, cutoff=1, order=3)
 
 
 
@@ -128,28 +125,28 @@ ecg_full_filter = filterInterface.low_pass(ecg_filtered_high, cutoff=7, order=3)
 # ---------------------------Plotting----------------------------------------------------
 # ---------------------------------------------------------------------------------------
 
-plt.figure('ECG Filtering')
+plt.figure('Respiratory filtering')
 
 plt.subplot(4, 1, 1)
-plt.plot(ecg_clean)
+plt.plot(respiratory_clean)
 plt.ylabel('bit value')
-plt.title('Original sampled ECG')
+plt.title('Original sampled respiratory signal')
 plt.xticks(color='w')
 
 plt.subplot(4,1,2)
-plt.plot(ecg_noisy)
+plt.plot(respiratory_noisy)
 plt.ylabel('bit value')
-plt.title('Noisy ECG with added 0.2Hz signal and mains hum (50Hz)')
+plt.title('Noisy signal with added ECG signal and mains hum (50Hz)')
 plt.xticks(color='w')
 
 plt.subplot(4,1,3)
-plt.plot(ecg_filtered_high)
+plt.plot(respiratory_filtered_high)
 plt.ylabel('bit value')
 plt.title('Highpass filtered signal')
 plt.xticks(color='w')
 
 plt.subplot(4,1,4)
-plt.plot(ecg_filtered_low)
+plt.plot(respiratory_filtered_low)
 plt.ylabel('bit value')
 plt.xlabel('Sample')
 plt.title('Lowpassed filtered signal')
@@ -159,9 +156,6 @@ plt.show()
 
 
 # Plot the fourier transforms of the various filtered results, interesting to see which frequencies are prevelant. 
-signalInterface.fft_plot(ecg_noisy, "Noisy ECG")
-signalInterface.fft_plot(ecg_filtered_low, "Lowpassed")
-signalInterface.fft_plot(ecg_filtered_high, "Highpassed")
-signalInterface.fft_plot(ecg_full_filter, "Fully filtered")
+signalInterface.fft_plot(respiratory_filtered_low, figure_title="FFT on the lowpassed signal")
 
 print('Done')
