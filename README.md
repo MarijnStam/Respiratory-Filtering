@@ -1,4 +1,4 @@
-# ECG-Filtering
+# Respiratory-Filtering
 A repository which is dedicated to finding proper ways to filter a noisy ECG signal
 
 ## Context
