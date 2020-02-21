@@ -33,14 +33,45 @@ import scipy.fftpack as fourier
 #Fourier Transforms
 
 class SignalTools:
+    """
+    The SignalTools functions as an interface to several utility functions like 
+    fft or sine generation. The reason this is defined in a class is to ensure
+    several wave-related variables to be identical over all the functions.
 
-    def __init__(self, sample_rate):
+    Parameters
+    ----------
+    sample_rate : int, float
+        Sampling rate to use with the functions.
+    capture_length : int
+        Time or duration of signal.
+
+    Notes
+    -----
+    Functions you call on this class will inherit the sampling rate and capture length which you
+    have passed to the constructor when instantiating this class.
+
+    """
+    def __init__(self, sample_rate, capture_length):
+
         self.sample_rate = sample_rate
         self.sample_spacing = 1.0 / sample_rate
+        self.capture_length = capture_length
+        self.num_samples = capture_length * sample_rate
 
 
     def fft_plot(self, data, figure_title):
+        """
+        Plot the fast-fourier transform of a passed array, use this to analyze
+        the frequency-domain of your signals.
 
+        Parameters
+        ----------
+        data : array-like
+            Signal array to be analyzed.
+        figure_title : string
+            Title of the plot    
+
+        """
         data_fft = fourier.fft(data)
 
         N = data_fft.size
@@ -57,6 +88,30 @@ class SignalTools:
         plt.ylabel('Amplitude')
         plt.show()
 
+
+    def sine_generator(self, sinefreq):
+        """
+        Returns a sine-wave at the passed frequency.
+
+        Parameters
+        ----------
+        sinefreq : int, float
+            Frequency of the generated sine-wave
+
+        Returns
+        ----------
+        y_sine : array_like
+            Generated sine-wave
+
+        Notes
+        ----------
+        The length of the generated array is based on the sampling rate and the capture length.
+        Both these variables are pre-defined in the instantiation of this class to prevent
+        missmatching arrays.
+        """
+        x = np.linspace(0.0, self.num_samples*(1.0/self.sample_rate), self.num_samples)
+        y_sine = np.sin(sinefreq * 2.0 * np.pi*x)
+        return y_sine
 
 ##TODO
 # TRY FFT OVER SMALLER TIME PERIOD RATHER THAN ENTIRE WAVEFORM

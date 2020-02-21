@@ -12,8 +12,9 @@ One can simply run the code from command line by running
 
 `python signal_simulation.py`
 
-This will automatically simulate and plot various signals. They have been labeled accordingly and can be adjusted to whatever you wish
-Along with this, Fast Fourier Transforms can be called on any of the waveforms, to see which frequencies are most dominant. This can be useful for analyzing noise.
+This will automatically simulate and plot various signals. They have been labeled accordingly and can be adjusted to whatever you wish. The respiratory
+signal is simulated thanks to the Open Access toolbox provided by NeuroKit2.
+Fast Fourier Transforms can be called on any of the waveforms, to see which frequencies are most dominant. This is useful for analyzing frequency domain.
 
 The repository holds 2 auxilary files which include several filters or signal tools. An instantiation of the class in these files can be made to easily interface with the functions included in these.
 
@@ -26,3 +27,4 @@ The following packages are needed:
 * scipy.signal
 * scipy.fftpack
 * numpy
+* [NeuroKit](https://github.com/neuropsychology/NeuroKit)

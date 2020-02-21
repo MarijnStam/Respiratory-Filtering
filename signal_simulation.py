@@ -33,14 +33,8 @@ import scipy.fftpack as fourier
 import numpy as np
 import filters
 import signal_tools
+import neurokit2 as nk
 
-
-def sine_generator(sample_rate, sinefreq, duration):
-
-    num_samples = sample_rate * duration
-    x = np.linspace(0.0, num_samples*(1.0/sample_rate), num_samples)
-    y_sine = np.sin(sinefreq * 2.0 * np.pi*x)
-    return y_sine
 
 # ---------------------------Global variables--------------------------------------------
 # ---------------------------------------------------------------------------------------
@@ -69,7 +63,7 @@ capture_length = 20
 
 # The Filter class holds all our filters, we can pass our data to a filter in this class and we get the filtered result.
 filterInterface = filters.Filters(sample_rate)
-signalInterface = signal_tools.SignalTools(sample_rate)
+signalInterface = signal_tools.SignalTools(sample_rate, capture_length)
 
 # The "Daubechies" wavelet is a rough approximation to a real,
 # single, heart beat ("pqrst") signal
@@ -88,8 +82,11 @@ ecg_template = np.tile(pqrst_full , num_heart_beats)
 
 
 # Create sine waves for respiratory signal (.2Hz) and for mains hum (50Hz)
-sine_respitory = sine_generator(sample_rate, .2, capture_length)
-sine_mains = sine_generator(sample_rate, 50., capture_length)
+# nk_respiratory is a more actual respiratory signal simulation based on 
+# the Neurokit2 library, the respiratory rate is amount of breath cycles per minute.
+nk_respiratory = nk.rsp_simulate(duration=capture_length, sampling_rate=sample_rate, respiratory_rate=15)
+sine_respiratory = signalInterface.sine_generator(0.2)
+sine_mains = signalInterface.sine_generator(50)
 
 # Add random (gaussian distributed) noise 
 noise = np.random.normal(0, 0.05, len(ecg_template))
@@ -104,7 +101,7 @@ num_samples = sample_rate * capture_length
 
 ecg_sampled = signal.resample(ecg_template, int(num_samples))
 mains_sampled = signal.resample(sine_mains, int(num_samples))
-respiratory_sampled = signal.resample(sine_respitory, int(num_samples))
+respiratory_sampled = signal.resample(nk_respiratory, int(num_samples))
 
 # Scale the normalised amplitude of the sampled ecg to whatever the ADC 
 # bit resolution is
@@ -156,6 +153,6 @@ plt.show()
 
 
 # Plot the fourier transforms of the various filtered results, interesting to see which frequencies are prevelant. 
-signalInterface.fft_plot(respiratory_filtered_low, figure_title="FFT on the lowpassed signal")
+signalInterface.fft_plot(respiratory_noisy, figure_title="FFT on the noisy signal")
 
 print('Done')

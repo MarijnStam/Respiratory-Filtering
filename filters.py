@@ -29,33 +29,47 @@
 import scipy.signal as signal
 
 class Filters:
-
-
     """
-    Initialize the filter class with a given sampling rate. This class is made with the idea of being a simple interface to 
-    call a number of filters with and compare how they function. The filters are meant to be applied to the same source signal
-    so the sampling rate is function independent and identical over the entire object. 
+    The Filters class contains a set of filter which can be accessed through
+    an object of this class. 
+
+    Parameters
+    ----------
+    sample_rate : int, float
+        Sampling rate to use with the functions.
+
+    Notes
+    -----
+    Functions you call on this class will inherit the sampling rate which you
+    have passed to the constructor when instantiating this class.
+
     """
     def __init__(self, sampling_rate):
         self.sampling_rate = sampling_rate
         self.nyquist_freq = sampling_rate / 2
 
 
-    """ 
-    -----------------------------------------------------------------------------------------------------------------------------
-    Low-pass filter
-    A low-pass (in this case a Butterworth) filter, passes "all" frequencies below a given cuttoff frequency and filters the 
-    frequencies above this cutoff. The order defines the steepness of the cutoff. 
-    Useful for filtering recurrent noise at high frequency rates or to prevent aliasing. https://en.wikipedia.org/wiki/Butterworth_filter
-    @Parameters: 
-        data:       The array to be filtered
-        cutoff:     Desired cutoff frequency
-        order:      Order of the filter
-    @Returns
-        Array with low-pass filter applied
-    -----------------------------------------------------------------------------------------------------------------------------
-    """
     def low_pass(self, data, cutoff, order):
+        """
+        Low-pass filter
+        A low-pass (in this case a Butterworth) filter, passes "all" frequencies below a given cuttoff frequency and filters the 
+        frequencies above this cutoff. The order defines the steepness of the cutoff. 
+        Useful for filtering recurrent noise at high frequency rates or to prevent aliasing. https://en.wikipedia.org/wiki/Butterworth_filter
+
+        Parameters
+        ----------
+        data : array_like       
+            The array to be filtered
+        cutoff : int, float     
+            Desired cutoff frequency
+        order   : int
+            Order of the filter
+
+        Returns
+        ----------
+        filtered_data : array_like
+            Filtered signal
+        """
         normal_cutoff = cutoff / self.nyquist_freq
 
         b, a = signal.butter(order, normal_cutoff, btype='low', analog=False)
@@ -64,22 +78,25 @@ class Filters:
         return filtered_data
 
 
-
-
-    """ 
-    -----------------------------------------------------------------------------------------------------------------------------
-    High-pass filter
-    A high-pass filter functions as the opposite of a low-pass filter. It passes frequencies above a given cutoff and filters 
-    frequencies below this cutoff. This filter is a modification of the Butterworth (low-pass) filter. 
-    @Parameters: 
-        data:       The array to be filtered
-        cutoff:     Desired cutoff frequency
-        order:      Order of the filter
-    @Returns
-        Array with high-pass filter applied
-    -----------------------------------------------------------------------------------------------------------------------------
-    """
     def high_pass(self, data, cutoff, order):
+        """
+        A high-pass filter functions as the opposite of a low-pass filter. It passes frequencies above a given cutoff and filters 
+        frequencies below this cutoff. This filter is a modification of the Butterworth (low-pass) filter. 
+
+        Parameters
+        ----------
+        data : array_like       
+            The array to be filtered
+        cutoff : int, float     
+            Desired cutoff frequency
+        order   : int
+            Order of the filter
+
+        Returns
+        ----------
+        filtered_data : array_like
+            Filtered signal
+        """
         normal_cutoff = cutoff / self.nyquist_freq
 
         b, a = signal.butter(order, normal_cutoff, btype='high', analog=False)
