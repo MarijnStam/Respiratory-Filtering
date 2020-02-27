@@ -97,7 +97,7 @@ class Filters:
         plt.xlabel("Sample")
         plt.ylabel("Amplitude")
         plt.legend(loc="upper right")
-        plt.text(80000, -1.5, "cutoff = %sHz\norder=%s"%(cutoff, order))
+        plt.text(80000, -0.7, "cutoff = %sHz\norder=%s"%(cutoff, order))
 
         result = dict(filtered_data=filtered_data, sos=sos, filter_name="Low pass filter", cutoff=cutoff)
         self.show_filter_response(result)
@@ -141,7 +141,7 @@ class Filters:
         plt.xlabel("Sample")
         plt.ylabel("Amplitude")
         plt.legend(loc="upper right")
-        plt.text(80000, -1.5, "cutoff = %sHz\norder=%s"%(cutoff, order))
+        plt.text(80000, -0.7, "cutoff = %sHz\norder=%s"%(cutoff, order))
 
         result = dict(filtered_data=filtered_data, sos=sos, filter_name="High pass filter", cutoff=cutoff)
         self.show_filter_response(result)
@@ -182,7 +182,7 @@ class Filters:
         plt.xlabel("Sample")
         plt.ylabel("Amplitude")
         plt.legend(loc="upper right")
-        plt.text(70000, -1.2, "kernel size = %s"%(kernel_size))
+        plt.text(70000, -0.7, "kernel size = %s"%(kernel_size))
         self.signalInterface.fft_plot(filtered_data, 'FFT on median filtered signal')
 
         return filtered_data

@@ -98,7 +98,7 @@ class SignalTools:
         sinefreq : int, float
             Frequency of the generated sine-wave
         amplite_modifier: float 
-            Adjusts the amplitude of the sine wave to be larger (>1) or smaller (<1)
+            Adjusts the amplitude of the sine wave to be larger (>1) or smaller (<1). Defaults to 1
 
         Returns
         ----------

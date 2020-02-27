@@ -89,13 +89,13 @@ def main():
     # the Neurokit2 library, the respiratory rate is amount of breath cycles per minute.
     nk_respiratory = nk.rsp_simulate(duration=capture_length, sampling_rate=sample_rate, respiratory_rate=15)
     sine_respiratory = signalInterface.sine_generator(0.2)
-    sine_mains = signalInterface.sine_generator(50, 0.01)
+    sine_mains = signalInterface.sine_generator(50, 0.1)
 
     num_samples = sample_rate * capture_length
     # Add random (gaussian distributed) noise 
     noise = np.random.normal(0, 0.05, num_samples)
 
-    respiratory_noisy =  (nk_respiratory + sine_mains + noise) 
+    respiratory_noisy =  (nk_respiratory  + noise + sine_mains) 
 
     #Apply each filter individually (NOT SEQUENTIALLY)
     # respiratory_filtered_high = filterInterface.high_pass(respiratory_noisy, cutoff=.5, order=3)
