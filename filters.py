@@ -27,6 +27,11 @@
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 import scipy.signal as signal
+import numpy as np
+import matplotlib.pyplot as plt
+import warnings
+from termcolor import colored
+
 
 class Filters:
     """
@@ -44,6 +49,8 @@ class Filters:
     have passed to the constructor when instantiating this class.
 
     """
+    warnings.simplefilter(action='ignore', category=FutureWarning)
+
     def __init__(self, sampling_rate):
         self.sampling_rate = sampling_rate
         self.nyquist_freq = sampling_rate / 2
@@ -67,15 +74,15 @@ class Filters:
 
         Returns
         ----------
-        filtered_data : array_like
-            Filtered signal
+        filtered_data : dict
+            Filtered signal as "filtered_data", filter characteristics as "sos", filter name as "filter_name" and cutoff as "cutoff"
         """
         normal_cutoff = cutoff / self.nyquist_freq
 
-        b, a = signal.butter(order, normal_cutoff, btype='low', analog=False)
-        filtered_data = signal.filtfilt(b, a, data)
+        sos = signal.butter(order, normal_cutoff, btype='low', analog=False, output='sos')
+        filtered_data = signal.sosfiltfilt(sos, data)
 
-        return filtered_data
+        return dict(filtered_data=filtered_data, sos=sos, filter_name="Low pass filter", cutoff=cutoff)
 
 
     def high_pass(self, data, cutoff, order):
@@ -94,15 +101,15 @@ class Filters:
 
         Returns
         ----------
-        filtered_data : array_like
-            Filtered signal
+        filtered_data : dict
+            Filtered signal as "filtered_data", filter characteristics as "sos", filter name as "filter_name" and cutoff as "cutoff"
         """
         normal_cutoff = cutoff / self.nyquist_freq
 
-        b, a = signal.butter(order, normal_cutoff, btype='high', analog=False)
-        filtered_data = signal.filtfilt(b, a, data)
+        sos = signal.butter(order, normal_cutoff, btype='high', analog=False, output='sos')
+        filtered_data = signal.sosfiltfilt(sos, data)
 
-        return filtered_data
+        return dict(filtered_data=filtered_data, sos=sos, filter_name="High pass filter", cutoff=cutoff)
 
 
 
@@ -122,3 +129,26 @@ class Filters:
     """
     def median_filter(self, data):
         return signal.medfilt(data)
+
+
+    def show_filter_response(self, filtered_dict):
+        if "sos" not in filtered_dict:
+            print(colored("Cannot display filter response on non-linear filter!", 'red'))
+            return
+            
+        w, h = signal.sosfreqz(filtered_dict["sos"], worN=100000)
+        plt.figure("Frequency response")
+        plt.plot((self.nyquist_freq / np.pi) * w, abs(h))
+        plt.plot([0, self.nyquist_freq], [np.sqrt(0.5), np.sqrt(0.5)],
+                '--', label='sqrt(0.5)')
+        
+        if "cutoff" in filtered_dict:
+            plt.axvline(x=filtered_dict["cutoff"], color='green', linestyle='--')
+
+        plt.xlabel('Frequency (Hz)')
+        plt.ylabel('Gain')
+        plt.grid(True)
+        plt.legend(loc='best')
+        plt.xlim(right=10, left=0)
+        plt.title(filtered_dict["filter_name"])
+        plt.show()

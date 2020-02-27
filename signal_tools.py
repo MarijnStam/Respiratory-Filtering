@@ -79,14 +79,15 @@ class SignalTools:
 
         plt.figure('Fast Fourier transform')
         axes = plt.gca()
-        axes.set_xlim([0,100])
+        axes.set_xlim([0,60])
 
         plt.semilogy(xf, 2.0/N * np.abs(data_fft[:N//2]))
         plt.title(figure_title)
         plt.grid()
         plt.xlabel('Frequency (Hz)')
         plt.ylabel('Amplitude')
-        plt.show()
+        plt.show(block=False)
+
 
 
     def sine_generator(self, sinefreq):
