@@ -79,18 +79,17 @@ class SignalTools:
 
         plt.figure('Fast Fourier transform')
         axes = plt.gca()
-        axes.set_xlim([0,60])
-
         plt.semilogy(xf, 2.0/N * np.abs(data_fft[:N//2]))
+        plt.xlim(0, 100)
         plt.title(figure_title)
         plt.grid()
         plt.xlabel('Frequency (Hz)')
         plt.ylabel('Amplitude')
-        plt.show(block=False)
+        plt.show(block=True)
 
 
 
-    def sine_generator(self, sinefreq):
+    def sine_generator(self, sinefreq, amplitude_modifier=1):
         """
         Returns a sine-wave at the passed frequency.
 
@@ -98,6 +97,8 @@ class SignalTools:
         ----------
         sinefreq : int, float
             Frequency of the generated sine-wave
+        amplite_modifier: float 
+            Adjusts the amplitude of the sine wave to be larger (>1) or smaller (<1)
 
         Returns
         ----------
@@ -112,7 +113,7 @@ class SignalTools:
         """
         x = np.linspace(0.0, self.num_samples*(1.0/self.sample_rate), self.num_samples)
         y_sine = np.sin(sinefreq * 2.0 * np.pi*x)
-        return y_sine
+        return y_sine * amplitude_modifier
 
 ##TODO
 # TRY FFT OVER SMALLER TIME PERIOD RATHER THAN ENTIRE WAVEFORM

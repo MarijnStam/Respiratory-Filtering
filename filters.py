@@ -31,6 +31,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import warnings
 from termcolor import colored
+import signal_tools
 
 
 class Filters:
@@ -50,10 +51,12 @@ class Filters:
 
     """
     warnings.simplefilter(action='ignore', category=FutureWarning)
+    
 
-    def __init__(self, sampling_rate):
+    def __init__(self, sampling_rate, capture_length):
         self.sampling_rate = sampling_rate
         self.nyquist_freq = sampling_rate / 2
+        self.signalInterface = signal_tools.SignalTools(sampling_rate, capture_length)
 
 
     def low_pass(self, data, cutoff, order):
@@ -79,10 +82,28 @@ class Filters:
         """
         normal_cutoff = cutoff / self.nyquist_freq
 
+        plt.figure("Lowpass filter")
+        ax = plt.subplot(2, 1, 1)
+        plt.plot(data, label="Before filter", color='r')
+        plt.ylabel("Amplitude")
+        plt.legend(loc='upper right')
+        plt.title("Effect of lowpass filter on the signal")
+
         sos = signal.butter(order, normal_cutoff, btype='low', analog=False, output='sos')
         filtered_data = signal.sosfiltfilt(sos, data)
 
-        return dict(filtered_data=filtered_data, sos=sos, filter_name="Low pass filter", cutoff=cutoff)
+        plt.subplot(2, 1, 2, sharex=ax, sharey=ax)
+        plt.plot(filtered_data, label="After filter", color='g')
+        plt.xlabel("Sample")
+        plt.ylabel("Amplitude")
+        plt.legend(loc="upper right")
+        plt.text(80000, -1.5, "cutoff = %sHz\norder=%s"%(cutoff, order))
+
+        result = dict(filtered_data=filtered_data, sos=sos, filter_name="Low pass filter", cutoff=cutoff)
+        self.show_filter_response(result)
+        self.signalInterface.fft_plot(result['filtered_data'], 'FFT on low-passed signal')
+
+        return result
 
 
     def high_pass(self, data, cutoff, order):
@@ -105,11 +126,28 @@ class Filters:
             Filtered signal as "filtered_data", filter characteristics as "sos", filter name as "filter_name" and cutoff as "cutoff"
         """
         normal_cutoff = cutoff / self.nyquist_freq
+        plt.figure("Highpass filter")
+
+        ax = plt.subplot(2, 1, 1)
+        plt.plot(data, label="Before filter", color='r')
+        plt.ylabel("Amplitude")
+        plt.legend(loc='upper right')
+        plt.title("Effect of highpass filter on the signal")
 
         sos = signal.butter(order, normal_cutoff, btype='high', analog=False, output='sos')
         filtered_data = signal.sosfiltfilt(sos, data)
+        plt.subplot(2, 1, 2, sharex=ax, sharey=ax)
+        plt.plot(filtered_data, label="After filter", color='g')
+        plt.xlabel("Sample")
+        plt.ylabel("Amplitude")
+        plt.legend(loc="upper right")
+        plt.text(80000, -1.5, "cutoff = %sHz\norder=%s"%(cutoff, order))
 
-        return dict(filtered_data=filtered_data, sos=sos, filter_name="High pass filter", cutoff=cutoff)
+        result = dict(filtered_data=filtered_data, sos=sos, filter_name="High pass filter", cutoff=cutoff)
+        self.show_filter_response(result)
+        self.signalInterface.fft_plot(result['filtered_data'], 'FFT on high-passed signal')
+
+        return result
 
 
 
@@ -127,15 +165,38 @@ class Filters:
         Array with median filter applied
     -----------------------------------------------------------------------------------------------------------------------------
     """
-    def median_filter(self, data):
-        return signal.medfilt(data)
+    def median_filter(self, data, kernel_size):
+
+        plt.figure("Median filter")
+
+        ax = plt.subplot(2, 1, 1)
+        plt.plot(data, label="Before filter", color='r')
+        plt.ylabel("Amplitude")
+        plt.legend(loc='upper right')
+        plt.title("Effect of median filter on the signal")
+
+        filtered_data = signal.medfilt(data, kernel_size=kernel_size)
+
+        ax2 = plt.subplot(2, 1, 2, sharex=ax, sharey=ax)
+        plt.plot(filtered_data, label="After filter", color='g')
+        plt.xlabel("Sample")
+        plt.ylabel("Amplitude")
+        plt.legend(loc="upper right")
+        plt.text(70000, -1.2, "kernel size = %s"%(kernel_size))
+        self.signalInterface.fft_plot(filtered_data, 'FFT on median filtered signal')
+
+        return filtered_data
+
+
+
+
 
 
     def show_filter_response(self, filtered_dict):
         if "sos" not in filtered_dict:
             print(colored("Cannot display filter response on non-linear filter!", 'red'))
             return
-            
+
         w, h = signal.sosfreqz(filtered_dict["sos"], worN=100000)
         plt.figure("Frequency response")
         plt.plot((self.nyquist_freq / np.pi) * w, abs(h))
@@ -143,7 +204,8 @@ class Filters:
                 '--', label='sqrt(0.5)')
         
         if "cutoff" in filtered_dict:
-            plt.axvline(x=filtered_dict["cutoff"], color='green', linestyle='--')
+            plt.axvline(x=filtered_dict["cutoff"], color='green', linestyle='--', label='Cuttoff frequency')
+
 
         plt.xlabel('Frequency (Hz)')
         plt.ylabel('Gain')
@@ -151,4 +213,4 @@ class Filters:
         plt.legend(loc='best')
         plt.xlim(right=10, left=0)
         plt.title(filtered_dict["filter_name"])
-        plt.show()
+        print(filtered_dict['sos'])

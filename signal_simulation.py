@@ -65,7 +65,7 @@ def main():
     # ---------------------------------------------------------------------------------------
 
     # The Filter class holds all our filters, we can pass our data to a filter in this class and we get the filtered result.
-    filterInterface = filters.Filters(sample_rate)
+    filterInterface = filters.Filters(sample_rate, capture_length)
     signalInterface = signal_tools.SignalTools(sample_rate, capture_length)
 
     # The "Daubechies" wavelet is a rough approximation to a real,
@@ -89,76 +89,28 @@ def main():
     # the Neurokit2 library, the respiratory rate is amount of breath cycles per minute.
     nk_respiratory = nk.rsp_simulate(duration=capture_length, sampling_rate=sample_rate, respiratory_rate=15)
     sine_respiratory = signalInterface.sine_generator(0.2)
-    sine_mains = signalInterface.sine_generator(50)
-
-    # Add random (gaussian distributed) noise 
-    noise = np.random.normal(0, 0.05, len(ecg_template))
-
-
-
-    # Simulate an ADC by sampling the noisy ecg template to produce the values
-    # Might be worth checking nyquist here 
-    # e.g. sampling rate >= (2 * template sampling rate)
+    sine_mains = signalInterface.sine_generator(50, 0.01)
 
     num_samples = sample_rate * capture_length
+    # Add random (gaussian distributed) noise 
+    noise = np.random.normal(0, 0.05, num_samples)
 
-    ecg_sampled = signal.resample(ecg_template, int(num_samples))
-    mains_sampled = signal.resample(sine_mains, int(num_samples))
-    respiratory_sampled = signal.resample(nk_respiratory, int(num_samples))
-
-    # Scale the normalised amplitude of the sampled ecg to whatever the ADC 
-    # bit resolution is
-    # note: check if this is correct: not sure if there should be negative bit values. 
-
-    respiratory_clean = adc_bit_resolution * respiratory_sampled
-    respiratory_noisy =  (respiratory_sampled + mains_sampled + ecg_sampled) * adc_bit_resolution
+    respiratory_noisy =  (nk_respiratory + sine_mains + noise) 
 
     #Apply each filter individually (NOT SEQUENTIALLY)
-    respiratory_filtered_high = filterInterface.high_pass(respiratory_noisy, cutoff=.3, order=3)
+    # respiratory_filtered_high = filterInterface.high_pass(respiratory_noisy, cutoff=.5, order=3)
     respiratory_filtered_low = filterInterface.low_pass(respiratory_noisy, cutoff=1, order=3)
-    respiratory_filtered_median = filterInterface.median_filter(respiratory_noisy)
-    respiratory_full_filter = filterInterface.low_pass(respiratory_filtered_high["filtered_data"], cutoff=1, order=3)
-
-
-
-
-    # ---------------------------Plotting----------------------------------------------------
-    # ---------------------------------------------------------------------------------------
-
-    plt.figure('Respiratory filtering')
-
-    plt.subplot(4, 1, 1)
-    plt.plot(respiratory_clean)
-    plt.ylabel('bit value')
-    plt.title('Original sampled respiratory signal')
-    plt.xticks(color='w')
-
-    plt.subplot(4,1,2)
-    plt.plot(respiratory_noisy)
-    plt.ylabel('bit value')
-    plt.title('Noisy signal with added ECG signal and mains hum (50Hz)')
-    plt.xticks(color='w')
-
-    plt.subplot(4,1,3)
-    plt.plot(respiratory_filtered_high["filtered_data"])
-    plt.ylabel('bit value')
-    plt.title('Highpass filtered signal')
-    plt.xticks(color='w')
-
-    plt.subplot(4,1,4)
-    plt.plot(respiratory_filtered_low["filtered_data"])
-    plt.ylabel('bit value')
-    plt.xlabel('Sample')
-    plt.title('Lowpassed filtered signal')
-    plt.xticks(color='w')
-
-
-    signalInterface.fft_plot(respiratory_full_filter["filtered_data"], "FFT on fully filtered signal")
-    filterInterface.show_filter_response(respiratory_full_filter)
-
+    respiratory_filtered_median = filterInterface.median_filter(respiratory_noisy, 101)
 
     plt.show()
 
+    # plt.figure("Results")
+    # plt.title("Original signal compared to filtered results")
+    # plt.plot(nk_respiratory, label="Original data")
+    # plt.plot(respiratory_filtered_low["filtered_data"], label="Low passed")
+    # plt.plot(respiratory_filtered_median, label="Median filter")
+    # plt.legend(loc='best')
+    # plt.show()
 
     print(colored('\nDone', 'green'))
 
