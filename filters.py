@@ -34,6 +34,12 @@ from termcolor import colored
 import signal_tools
 
 
+class AttrDict(dict):
+    def __init__(self, *args, **kwargs):
+        super(AttrDict, self).__init__(*args, **kwargs)
+        self.__dict__ = self
+
+
 class Filters:
     """
     The Filters class contains a set of filter which can be accessed through
@@ -99,7 +105,7 @@ class Filters:
         plt.legend(loc="upper right")
         plt.text(80000, -0.7, "cutoff = %sHz\norder=%s"%(cutoff, order))
 
-        result = dict(filtered_data=filtered_data, sos=sos, filter_name="Low pass filter", cutoff=cutoff)
+        result = AttrDict(filtered_data=filtered_data, sos=sos, filter_name="Low pass filter", cutoff=cutoff)
         self.show_filter_response(result)
         self.signalInterface.fft_plot(result['filtered_data'], 'FFT on low-passed signal')
 
@@ -143,7 +149,7 @@ class Filters:
         plt.legend(loc="upper right")
         plt.text(80000, -0.7, "cutoff = %sHz\norder=%s"%(cutoff, order))
 
-        result = dict(filtered_data=filtered_data, sos=sos, filter_name="High pass filter", cutoff=cutoff)
+        result = AttrDict(filtered_data=filtered_data, sos=sos, filter_name="High pass filter", cutoff=cutoff)
         self.show_filter_response(result)
         self.signalInterface.fft_plot(result['filtered_data'], 'FFT on high-passed signal')
 
@@ -197,14 +203,14 @@ class Filters:
             print(colored("Cannot display filter response on non-linear filter!", 'red'))
             return
 
-        w, h = signal.sosfreqz(filtered_dict["sos"], worN=100000)
+        w, h = signal.sosfreqz(filtered_dict.sos, worN=100000)
         plt.figure("Frequency response")
         plt.plot((self.nyquist_freq / np.pi) * w, abs(h))
         plt.plot([0, self.nyquist_freq], [np.sqrt(0.5), np.sqrt(0.5)],
                 '--', label='sqrt(0.5)')
         
         if "cutoff" in filtered_dict:
-            plt.axvline(x=filtered_dict["cutoff"], color='green', linestyle='--', label='Cuttoff frequency')
+            plt.axvline(x=filtered_dict.cutoff, color='green', linestyle='--', label='Cuttoff frequency')
 
 
         plt.xlabel('Frequency (Hz)')
@@ -212,5 +218,5 @@ class Filters:
         plt.grid(True)
         plt.legend(loc='best')
         plt.xlim(right=10, left=0)
-        plt.title(filtered_dict["filter_name"])
+        plt.title(filtered_dict.filter_name)
         print(filtered_dict['sos'])

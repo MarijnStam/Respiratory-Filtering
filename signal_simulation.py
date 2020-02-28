@@ -36,15 +36,19 @@ import signal_tools
 import neurokit2 as nk
 from termcolor import colored
 import sys
+from random import seed
+from random import randint
 
 
 # ---------------------------Global variables--------------------------------------------
 # ---------------------------------------------------------------------------------------
 def main():
 
+    seed(1)
+
     # Filter requirements.
     order = 5       # Filter order
-    sample_rate = 5000    # sample rate, Hz
+    sample_rate = 125    # sample rate, Hz
 
     # The rest between two hearbeats, heartbeats will be simulated in the form of an ECG to add artifacts to the respiratory signal.
     samples_rest = 10
@@ -87,20 +91,34 @@ def main():
     # Create sine waves for respiratory signal (.2Hz) and for mains hum (50Hz)
     # nk_respiratory is a more actual respiratory signal simulation based on 
     # the Neurokit2 library, the respiratory rate is amount of breath cycles per minute.
-    nk_respiratory = nk.rsp_simulate(duration=capture_length, sampling_rate=sample_rate, respiratory_rate=15)
+    nk_respiratory = nk.rsp_simulate(duration=capture_length, sampling_rate=sample_rate, respiratory_rate=25)
     sine_respiratory = signalInterface.sine_generator(0.2)
     sine_mains = signalInterface.sine_generator(50, 0.1)
 
     num_samples = sample_rate * capture_length
+
+
     # Add random (gaussian distributed) noise 
-    noise = np.random.normal(0, 0.05, num_samples)
+    noise = np.random.normal(0, 0.2, num_samples)
+    for i, value in enumerate(nk_respiratory):
+        if(randint(0,10) > 9):
+            nk_respiratory[i:i+20:1] = value + noise[i:i+20:1]
+
+    # 1 in every 10 samples (statistically), 20 samples of noise are added. This simulates erradic movement.
+
+
+
+    # plt.figure("test")
+    # plt.plot(nk_respiratory)
 
     respiratory_noisy =  (nk_respiratory  + noise + sine_mains) 
 
-    #Apply each filter individually (NOT SEQUENTIALLY)
-    # respiratory_filtered_high = filterInterface.high_pass(respiratory_noisy, cutoff=.5, order=3)
-    respiratory_filtered_low = filterInterface.low_pass(respiratory_noisy, cutoff=1, order=3)
-    respiratory_filtered_median = filterInterface.median_filter(respiratory_noisy, 101)
+    # Apply each filter individually (NOT SEQUENTIALLY)
+
+    # respiratory_filtered_high = filterInterface.high_pass(respiratory_noisy, cutoff=1, order=3)
+    respiratory_filtered_median = filterInterface.median_filter(respiratory_noisy, 151)
+    respiratory_filtered_low = filterInterface.low_pass(respiratory_filtered_median, cutoff=1, order=3)
+
 
     plt.show()
 
