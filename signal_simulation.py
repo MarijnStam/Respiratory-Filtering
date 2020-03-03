@@ -40,6 +40,7 @@ from random import seed
 from random import randint
 
 
+
 # ---------------------------Global variables--------------------------------------------
 # ---------------------------------------------------------------------------------------
 def main():
@@ -62,7 +63,7 @@ def main():
     adc_bit_resolution = 1024
 
     # Simulated period of time in seconds that the ecg is captured in
-    capture_length = 20
+    capture_length = 12
 
 
     # ---------------------------Start of all scripting logic--------------------------------
@@ -71,6 +72,9 @@ def main():
     # The Filter class holds all our filters, we can pass our data to a filter in this class and we get the filtered result.
     filterInterface = filters.Filters(sample_rate, capture_length)
     signalInterface = signal_tools.SignalTools(sample_rate, capture_length)
+
+
+
 
     # The "Daubechies" wavelet is a rough approximation to a real,
     # single, heart beat ("pqrst") signal
@@ -91,8 +95,8 @@ def main():
     # Create sine waves for respiratory signal (.2Hz) and for mains hum (50Hz)
     # nk_respiratory is a more actual respiratory signal simulation based on 
     # the Neurokit2 library, the respiratory rate is amount of breath cycles per minute.
-    nk_respiratory = nk.rsp_simulate(duration=capture_length, sampling_rate=sample_rate, respiratory_rate=25)
-    sine_respiratory = signalInterface.sine_generator(0.2)
+    nk_respiratory = nk.rsp_simulate(duration=capture_length, sampling_rate=sample_rate, respiratory_rate=20)
+    sine_respiratory = signalInterface.sine_generator(.2)
     sine_mains = signalInterface.sine_generator(50, 0.1)
 
     num_samples = sample_rate * capture_length
@@ -111,15 +115,43 @@ def main():
     # plt.figure("test")
     # plt.plot(nk_respiratory)
 
-    respiratory_noisy =  (nk_respiratory  + noise + sine_mains) 
+    respiratory_noisy =  (nk_respiratory + sine_mains) 
+
+
+
+
 
     # Apply each filter individually (NOT SEQUENTIALLY)
 
     # respiratory_filtered_high = filterInterface.high_pass(respiratory_noisy, cutoff=1, order=3)
-    respiratory_filtered_median = filterInterface.median_filter(respiratory_noisy, 151)
-    respiratory_filtered_low = filterInterface.low_pass(respiratory_filtered_median, cutoff=1, order=3)
+    # median = filterInterface.median_filter(respiratory_noisy, 151)
+    # low = filterInterface.low_pass(respiratory_noisy, cutoff=.5, order=3)
 
 
+
+    downsample_factor = 15
+    signalInterfaceLowRes = signal_tools.SignalTools(sample_rate/downsample_factor, capture_length)
+    filterInterfaceLowRes = filters.Filters(sample_rate/downsample_factor, capture_length)
+
+    resp_downsampled = signalInterface.downsample(respiratory_noisy, downsample_factor)
+
+    plt.figure("Downsampled")
+    plt.plot(resp_downsampled)
+    plt.figure("Original")
+    plt.plot(respiratory_noisy)
+
+    signalInterfaceLowRes.fft_plot(resp_downsampled, "low res FFT")
+    filterInterfaceLowRes.low_pass(resp_downsampled, cutoff=.3, order=3)
+
+    
+
+
+    # filterInterface_low.low_pass(resp_downsampled, cutoff=0.5, order=3)
+    # signalInterface_low.fft_plot(resp_downsampled, "pre-filter fft")
+
+
+    # plt.plot(respiratory_noisy)
+    # plt.plot(resp_downsampled)
     plt.show()
 
     # plt.figure("Results")

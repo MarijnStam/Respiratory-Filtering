@@ -83,8 +83,9 @@ class Filters:
 
         Returns
         ----------
-        filtered_data : dict
-            Filtered signal as "filtered_data", filter characteristics as "sos", filter name as "filter_name" and cutoff as "cutoff"
+        result : AttrDict
+            Filtered signal as "filtered_data", filter characteristics as "sos", filter name as "filter_name" and cutoff as "cutoff
+            These attributes can be accessed as-if they were object attributes (e.g. result.sos)"
         """
         normal_cutoff = cutoff / self.nyquist_freq
 
@@ -107,7 +108,7 @@ class Filters:
 
         result = AttrDict(filtered_data=filtered_data, sos=sos, filter_name="Low pass filter", cutoff=cutoff)
         self.show_filter_response(result)
-        self.signalInterface.fft_plot(result['filtered_data'], 'FFT on low-passed signal')
+        self.signalInterface.fft_plot(result.filtered_data, 'FFT on low-passed signal')
 
         return result
 
@@ -128,8 +129,9 @@ class Filters:
 
         Returns
         ----------
-        filtered_data : dict
-            Filtered signal as "filtered_data", filter characteristics as "sos", filter name as "filter_name" and cutoff as "cutoff"
+        result : AttrDict
+            Filtered signal as "filtered_data", filter characteristics as "sos", filter name as "filter_name" and cutoff as "cutoff
+            These attributes can be accessed as-if they were object attributes (e.g. result.sos)"
         """
         normal_cutoff = cutoff / self.nyquist_freq
         plt.figure("Highpass filter")
@@ -151,12 +153,9 @@ class Filters:
 
         result = AttrDict(filtered_data=filtered_data, sos=sos, filter_name="High pass filter", cutoff=cutoff)
         self.show_filter_response(result)
-        self.signalInterface.fft_plot(result['filtered_data'], 'FFT on high-passed signal')
+        self.signalInterface.fft_plot(result.filtered_data, 'FFT on high-passed signal')
 
         return result
-
-
-
 
 
     """ 
@@ -191,7 +190,8 @@ class Filters:
         plt.text(70000, -0.7, "kernel size = %s"%(kernel_size))
         self.signalInterface.fft_plot(filtered_data, 'FFT on median filtered signal')
 
-        return filtered_data
+        result = AttrDict(filtered_data=filtered_data, filter_name="Median Filter", kernel_size=kernel_size)
+        return result
 
 
 
@@ -219,4 +219,4 @@ class Filters:
         plt.legend(loc='best')
         plt.xlim(right=10, left=0)
         plt.title(filtered_dict.filter_name)
-        print(filtered_dict['sos'])
+

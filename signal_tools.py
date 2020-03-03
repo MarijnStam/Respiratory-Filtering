@@ -29,6 +29,8 @@
 import matplotlib.pyplot as plt
 import numpy as np
 import scipy.fftpack as fourier
+from itertools import islice
+from termcolor import colored
 
 #Fourier Transforms
 
@@ -78,9 +80,8 @@ class SignalTools:
         xf = np.linspace(0, 1.0/(2.0*self.sample_spacing), int(N/2))
 
         plt.figure('Fast Fourier transform')
-        axes = plt.gca()
         plt.semilogy(xf, 2.0/N * np.abs(data_fft[:N//2]))
-        plt.xlim(0, 100)
+        plt.xlim(0, 70)
         plt.title(figure_title)
         plt.grid()
         plt.xlabel('Frequency (Hz)')
@@ -115,6 +116,48 @@ class SignalTools:
         y_sine = np.sin(sinefreq * 2.0 * np.pi*x)
         return y_sine * amplitude_modifier
 
-##TODO
-# TRY FFT OVER SMALLER TIME PERIOD RATHER THAN ENTIRE WAVEFORM
-# TRY ADDING ALL THE RESULTING FREQUENCIES IN HZ AS A SUM SINE WAVE
+
+
+    def downsample(self, data, chunk_size):
+        """
+        Returns an array downsampled by a variable factor. The average over a chunk, which size is defined by chunk_size\n
+        is calculated and placed into the downsampled array.
+
+        Parameters
+        ----------
+        data : `array_like`
+            1D array to be downsampled\n
+        chunk_size: `int` 
+            chunks in which the array will be divided, can also be interpreted as downsample factor\n
+            For example, input array of size 100 with a chunk size of 20 will result in an array of size 5
+
+        Returns
+        ----------
+        downsampled : `array_like`
+            The downsampled array.
+
+        Notes
+        ----------
+        Minimal and maximum values are trimmed off the original data based on the chunk size.\n
+        The input array is sorted and the array is trimmed so that the first and last quarter are trimmed off.
+        """
+
+        slice_int = chunk_size//3
+        min_maxed = np.zeros(slice_int)
+        it = iter(data)
+        sliced_data = list(iter(lambda: tuple(islice(it, chunk_size)), ()))
+        downsampled = np.zeros(len(sliced_data))
+
+
+        for idx, value in enumerate(sliced_data):
+            to_sort = list(value)
+            to_sort.sort()
+            min_maxed = to_sort[slice_int:chunk_size-slice_int]
+            downsampled[idx] = np.average(to_sort)
+
+        print('Size of original data buffer: \n', len(data))
+        print('Size of downsampled data buffer: \n', len(downsampled))
+
+        return downsampled
+
+    
