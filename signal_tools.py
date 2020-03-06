@@ -28,13 +28,15 @@
 
 import matplotlib.pyplot as plt
 import numpy as np
-import scipy.fftpack as fourier
+import scipy.fft as fourier
 from itertools import islice
 from termcolor import colored
+import filters
 
 #Fourier Transforms
 
 class SignalTools:
+    
     """
     The SignalTools functions as an interface to several utility functions like 
     fft or sine generation. The reason this is defined in a class is to ensure
@@ -77,16 +79,31 @@ class SignalTools:
         data_fft = fourier.fft(data)
 
         N = data_fft.size
+        print("FFT Size = ", N)
+
+        #Only interested in positive range of the FFT
+        frequency_resolution = self.sample_rate / N
         xf = np.linspace(0, 1.0/(2.0*self.sample_spacing), int(N/2))
+        #Set the x linear axis space to the amount of frequency bins in the FFT
+        #Frequency bins are determined by the frequency resolution, or sampling_rate/N
+
+        #TODO Normalize the FFT results
 
         plt.figure('Fast Fourier transform')
+        plt.grid(True, which="both")
         plt.semilogy(xf, 2.0/N * np.abs(data_fft[:N//2]))
-        plt.xlim(0, 70)
+        plt.xlim(0,1.0/(2.0*self.sample_spacing))
         plt.title(figure_title)
-        plt.grid()
-        plt.xlabel('Frequency (Hz)')
+        
+        plt.xlabel('Frequentie (Hz)')
         plt.ylabel('Amplitude')
+        
+        data_fft_real = data_fft.real
         plt.show(block=True)
+
+        #TODO Make FFT function return the result rather than plotting in function
+        #TODO Include the FFT peaks in the result
+        
 
 
 
@@ -112,13 +129,13 @@ class SignalTools:
         Both these variables are pre-defined in the instantiation of this class to prevent
         missmatching arrays.
         """
-        x = np.linspace(0.0, self.num_samples*(1.0/self.sample_rate), self.num_samples)
-        y_sine = np.sin(sinefreq * 2.0 * np.pi*x)
+        samples = np.linspace(0.0, self.capture_length, self.num_samples, endpoint=False)
+        y_sine = np.sin(2 * np.pi * sinefreq * samples)
         return y_sine * amplitude_modifier
 
 
 
-    def downsample(self, data, chunk_size):
+    def downsample(self, data, chunk_size, anti_alias=True):
         """
         Returns an array downsampled by a variable factor. The average over a chunk, which size is defined by chunk_size\n
         is calculated and placed into the downsampled array.
@@ -141,10 +158,16 @@ class SignalTools:
         Minimal and maximum values are trimmed off the original data based on the chunk size.\n
         The input array is sorted and the array is trimmed so that the first and last quarter are trimmed off.
         """
-
+        downsampled_rate = self.sample_rate / chunk_size
+        nyquist = downsampled_rate/2
+        filterInterface = filters.Filters(self.sample_rate, self.capture_length)
         slice_int = chunk_size//3
         min_maxed = np.zeros(slice_int)
-        it = iter(data)
+        if(anti_alias):
+            antialias = filterInterface.low_pass(data, nyquist-0.01, order=3, plot=True)
+            it = iter(antialias.filtered_data)
+        else:
+            it = iter(data)
         sliced_data = list(iter(lambda: tuple(islice(it, chunk_size)), ()))
         downsampled = np.zeros(len(sliced_data))
 
@@ -153,7 +176,7 @@ class SignalTools:
             to_sort = list(value)
             to_sort.sort()
             min_maxed = to_sort[slice_int:chunk_size-slice_int]
-            downsampled[idx] = np.average(to_sort)
+            downsampled[idx] = np.average(min_maxed)
 
         print('Size of original data buffer: \n', len(data))
         print('Size of downsampled data buffer: \n', len(downsampled))

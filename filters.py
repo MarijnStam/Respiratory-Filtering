@@ -47,8 +47,11 @@ class Filters:
 
     Parameters
     ----------
-    sample_rate : int, float
-        Sampling rate to use with the functions.
+    sample_rate : `int, float`
+        Sampling rate to use with the functions.\n
+    capture_length : `int, float`
+        Duration of signal
+    
 
     Notes
     -----
@@ -65,7 +68,7 @@ class Filters:
         self.signalInterface = signal_tools.SignalTools(sampling_rate, capture_length)
 
 
-    def low_pass(self, data, cutoff, order):
+    def low_pass(self, data, cutoff, order, plot=False):
         """
         Low-pass filter
         A low-pass (in this case a Butterworth) filter, passes "all" frequencies below a given cuttoff frequency and filters the 
@@ -74,46 +77,50 @@ class Filters:
 
         Parameters
         ----------
-        data : array_like       
-            The array to be filtered
-        cutoff : int, float     
-            Desired cutoff frequency
-        order   : int
-            Order of the filter
+        data : `array_like`       
+            The array to be filtered\n
+        cutoff : `int, float`     
+            Desired cutoff frequency\n
+        order   : `int`
+            Order of the filter\n
+        plot : `bool`
+            True if you want to plot filter characteristics and result, defaults to False
 
         Returns
         ----------
-        result : AttrDict
+        result : `AttrDict`
             Filtered signal as "filtered_data", filter characteristics as "sos", filter name as "filter_name" and cutoff as "cutoff
             These attributes can be accessed as-if they were object attributes (e.g. result.sos)"
         """
         normal_cutoff = cutoff / self.nyquist_freq
 
-        plt.figure("Lowpass filter")
-        ax = plt.subplot(2, 1, 1)
-        plt.plot(data, label="Before filter", color='r')
-        plt.ylabel("Amplitude")
-        plt.legend(loc='upper right')
-        plt.title("Effect of lowpass filter on the signal")
-
         sos = signal.butter(order, normal_cutoff, btype='low', analog=False, output='sos')
         filtered_data = signal.sosfiltfilt(sos, data)
-
-        plt.subplot(2, 1, 2, sharex=ax, sharey=ax)
-        plt.plot(filtered_data, label="After filter", color='g')
-        plt.xlabel("Sample")
-        plt.ylabel("Amplitude")
-        plt.legend(loc="upper right")
-        plt.text(80000, -0.7, "cutoff = %sHz\norder=%s"%(cutoff, order))
-
         result = AttrDict(filtered_data=filtered_data, sos=sos, filter_name="Low pass filter", cutoff=cutoff)
-        self.show_filter_response(result)
-        self.signalInterface.fft_plot(result.filtered_data, 'FFT on low-passed signal')
 
+        if(plot):
+            plt.figure("Lowpass filter")
+            plt.grid()
+            ax = plt.subplot(2, 1, 1)
+            plt.plot(data, label="Before filter", color='r')
+            plt.ylabel("Amplitude")
+            plt.legend(loc='upper right')
+            plt.title("Effect of lowpass filter on the signal")
+
+            plt.subplot(2, 1, 2, sharex=ax, sharey=ax)
+            plt.plot(filtered_data, label="After filter", color='g')
+            plt.xlabel("Sample")
+            plt.ylabel("Amplitude")
+            plt.legend(loc="upper right")
+            plt.text(80000, -0.7, "cutoff = %sHz\norder=%s"%(cutoff, order))
+            self.show_filter_response(result)
+            self.signalInterface.fft_plot(result.filtered_data, 'FFT on low-passed signal')
+
+    
         return result
 
 
-    def high_pass(self, data, cutoff, order):
+    def high_pass(self, data, cutoff, order, plot=False):
         """
         A high-pass filter functions as the opposite of a low-pass filter. It passes frequencies above a given cutoff and filters 
         frequencies below this cutoff. This filter is a modification of the Butterworth (low-pass) filter. 
@@ -126,6 +133,8 @@ class Filters:
             Desired cutoff frequency
         order   : int
             Order of the filter
+        plot : `bool`
+            True if you want to plot filter characteristics and result, defaults to False
 
         Returns
         ----------
@@ -134,26 +143,28 @@ class Filters:
             These attributes can be accessed as-if they were object attributes (e.g. result.sos)"
         """
         normal_cutoff = cutoff / self.nyquist_freq
-        plt.figure("Highpass filter")
-
-        ax = plt.subplot(2, 1, 1)
-        plt.plot(data, label="Before filter", color='r')
-        plt.ylabel("Amplitude")
-        plt.legend(loc='upper right')
-        plt.title("Effect of highpass filter on the signal")
-
         sos = signal.butter(order, normal_cutoff, btype='high', analog=False, output='sos')
         filtered_data = signal.sosfiltfilt(sos, data)
-        plt.subplot(2, 1, 2, sharex=ax, sharey=ax)
-        plt.plot(filtered_data, label="After filter", color='g')
-        plt.xlabel("Sample")
-        plt.ylabel("Amplitude")
-        plt.legend(loc="upper right")
-        plt.text(80000, -0.7, "cutoff = %sHz\norder=%s"%(cutoff, order))
-
         result = AttrDict(filtered_data=filtered_data, sos=sos, filter_name="High pass filter", cutoff=cutoff)
-        self.show_filter_response(result)
-        self.signalInterface.fft_plot(result.filtered_data, 'FFT on high-passed signal')
+        if(plot):
+            plt.figure("Highpass filter")
+            plt.grid()
+
+            ax = plt.subplot(2, 1, 1)
+            plt.plot(data, label="Before filter", color='r')
+            plt.ylabel("Amplitude")
+            plt.legend(loc='upper right')
+            plt.title("Effect of highpass filter on the signal")
+
+
+            plt.subplot(2, 1, 2, sharex=ax, sharey=ax)
+            plt.plot(filtered_data, label="After filter", color='g')
+            plt.xlabel("Sample")
+            plt.ylabel("Amplitude")
+            plt.legend(loc="upper right")
+            plt.text(80000, -0.7, "cutoff = %sHz\norder=%s"%(cutoff, order))
+            self.show_filter_response(result)
+            self.signalInterface.fft_plot(result.filtered_data, 'FFT on high-passed signal')
 
         return result
 
@@ -173,6 +184,7 @@ class Filters:
     def median_filter(self, data, kernel_size):
 
         plt.figure("Median filter")
+        plt.grid()
 
         ax = plt.subplot(2, 1, 1)
         plt.plot(data, label="Before filter", color='r')
@@ -195,9 +207,6 @@ class Filters:
 
 
 
-
-
-
     def show_filter_response(self, filtered_dict):
         if "sos" not in filtered_dict:
             print(colored("Cannot display filter response on non-linear filter!", 'red'))
@@ -207,16 +216,15 @@ class Filters:
         plt.figure("Frequency response")
         plt.plot((self.nyquist_freq / np.pi) * w, abs(h))
         plt.plot([0, self.nyquist_freq], [np.sqrt(0.5), np.sqrt(0.5)],
-                '--', label='sqrt(0.5)')
+                '--', label='-3dB')
         
         if "cutoff" in filtered_dict:
             plt.axvline(x=filtered_dict.cutoff, color='green', linestyle='--', label='Cuttoff frequency')
-
 
         plt.xlabel('Frequency (Hz)')
         plt.ylabel('Gain')
         plt.grid(True)
         plt.legend(loc='best')
-        plt.xlim(right=10, left=0)
+        plt.xlim(right=filtered_dict.cutoff*2, left=0)
         plt.title(filtered_dict.filter_name)
 

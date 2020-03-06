@@ -29,7 +29,7 @@
 
 import matplotlib.pyplot as plt
 import scipy.signal as signal
-import scipy.fftpack as fourier
+import scipy.fft as fourier
 import numpy as np
 import filters
 import signal_tools
@@ -38,8 +38,19 @@ from termcolor import colored
 import sys
 from random import seed
 from random import randint
+from sklearn.preprocessing import StandardScaler
+import pandas as pd
 
+def importCSV(filename, num_of_breaths):
+    ss = StandardScaler()
+    data = pd.read_csv(filename)
 
+    resp_data = data['ECG']
+    # reshaped = resp_data.values.reshape(-1, 1)
+    # resp_std = ss.fit_transform(reshaped)
+    np_resp = np.array(resp_data)
+
+    return np_resp[0:num_of_breaths*375]
 
 # ---------------------------Global variables--------------------------------------------
 # ---------------------------------------------------------------------------------------
@@ -49,7 +60,7 @@ def main():
 
     # Filter requirements.
     order = 5       # Filter order
-    sample_rate = 125    # sample rate, Hz
+    sample_rate = 1300    # sample rate, Hz
 
     # The rest between two hearbeats, heartbeats will be simulated in the form of an ECG to add artifacts to the respiratory signal.
     samples_rest = 10
@@ -63,7 +74,7 @@ def main():
     adc_bit_resolution = 1024
 
     # Simulated period of time in seconds that the ecg is captured in
-    capture_length = 12
+    capture_length = 6
 
 
     # ---------------------------Start of all scripting logic--------------------------------
@@ -95,53 +106,54 @@ def main():
     # Create sine waves for respiratory signal (.2Hz) and for mains hum (50Hz)
     # nk_respiratory is a more actual respiratory signal simulation based on 
     # the Neurokit2 library, the respiratory rate is amount of breath cycles per minute.
-    nk_respiratory = nk.rsp_simulate(duration=capture_length, sampling_rate=sample_rate, respiratory_rate=20)
-    sine_respiratory = signalInterface.sine_generator(.2)
+    # nk_respiratory = nk.rsp_simulate(duration=capture_length, sampling_rate=sample_rate, respiratory_rate=20)
+    sine_respiratory = signalInterface.sine_generator(5)
     sine_mains = signalInterface.sine_generator(50, 0.1)
+    sine_alias = signalInterface.sine_generator(50)
 
     num_samples = sample_rate * capture_length
 
 
     # Add random (gaussian distributed) noise 
-    noise = np.random.normal(0, 0.2, num_samples)
-    for i, value in enumerate(nk_respiratory):
-        if(randint(0,10) > 9):
-            nk_respiratory[i:i+20:1] = value + noise[i:i+20:1]
-
+    # noise = np.random.normal(0, 0.2, num_samples)
+    # for i, value in enumerate(nk_respiratory):
+    #     if(randint(0,10) > 9):
+    #         nk_respiratory[i:i+20:1] = value + noise[i:i+20:1]
     # 1 in every 10 samples (statistically), 20 samples of noise are added. This simulates erradic movement.
 
 
-
-    # plt.figure("test")
-    # plt.plot(nk_respiratory)
-
-    respiratory_noisy =  (nk_respiratory + sine_mains) 
-
-
-
-
+    # respiratory_noisy =  (nk_respiratory + sine_mains) 
+    alias_test = sine_respiratory + sine_alias
 
     # Apply each filter individually (NOT SEQUENTIALLY)
 
-    # respiratory_filtered_high = filterInterface.high_pass(respiratory_noisy, cutoff=1, order=3)
-    # median = filterInterface.median_filter(respiratory_noisy, 151)
-    # low = filterInterface.low_pass(respiratory_noisy, cutoff=.5, order=3)
+    resp_data = importCSV(filename='cleandata.csv', num_of_breaths=3)
+    # signalInterface.fft_plot(resp_data, figure_title='FFT on clean data')
+
+    downsample_factor = 2
+    signalInterfaceLowRes = signal_tools.SignalTools(sample_rate//downsample_factor, capture_length)
+    filterInterfaceLowRes = filters.Filters(sample_rate//downsample_factor, capture_length)
+
+
+    impulse = signal.unit_impulse(num_samples)
+
+
+    impulse_response_low = filterInterface.low_pass(impulse, cutoff=20, order=3, plot=True)
+    impulse_response_high = filterInterface.high_pass(impulse, cutoff=20, order=3, plot=True)
+    print(impulse_response_high.filtered_data) #NEVER ZERO, IIR!
+
+
+    # csv_data = importCSV("cleandata.csv", num_of_breaths=3)
+
+    # signalInterface.fft_plot(alias_test, figure_title="Fourier Transform op een signaal bestaande uit 2 sinus golven")
+    # resp_downsampled = signalInterface.downsample(csv_data, downsample_factor)
+    # resp_downsampled_no_filter = signalInterface.downsample(csv_data, downsample_factor, anti_alias=False)
 
 
 
-    downsample_factor = 15
-    signalInterfaceLowRes = signal_tools.SignalTools(sample_rate/downsample_factor, capture_length)
-    filterInterfaceLowRes = filters.Filters(sample_rate/downsample_factor, capture_length)
 
-    resp_downsampled = signalInterface.downsample(respiratory_noisy, downsample_factor)
-
-    plt.figure("Downsampled")
-    plt.plot(resp_downsampled)
-    plt.figure("Original")
-    plt.plot(respiratory_noisy)
-
-    signalInterfaceLowRes.fft_plot(resp_downsampled, "low res FFT")
-    filterInterfaceLowRes.low_pass(resp_downsampled, cutoff=.3, order=3)
+    # signalInterfaceLowRes.fft_plot(resp_downsampled, "low res FFT")
+    # filterInterfaceLowRes.low_pass(resp_downsampled, cutoff=.3, order=3)
 
     
 
@@ -170,3 +182,5 @@ if __name__ == '__main__':
     except KeyboardInterrupt:
         print(colored('\nDone, interrupted', 'green'))    
         sys.exit(0)
+
+#TODO Write tests!
