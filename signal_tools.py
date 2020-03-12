@@ -32,8 +32,14 @@ import scipy.fft as fourier
 from itertools import islice
 from termcolor import colored
 import filters
+import time
 
 #Fourier Transforms
+
+class AttrDict(dict):
+    def __init__(self, *args, **kwargs):
+        super(AttrDict, self).__init__(*args, **kwargs)
+        self.__dict__ = self
 
 class SignalTools:
     
@@ -58,7 +64,6 @@ class SignalTools:
     def __init__(self, sample_rate, capture_length):
 
         self.sample_rate = sample_rate
-        self.sample_spacing = 1.0 / sample_rate
         self.capture_length = capture_length
         self.num_samples = capture_length * sample_rate
 
@@ -76,14 +81,18 @@ class SignalTools:
             Title of the plot    
 
         """
+
         data_fft = fourier.fft(data)
 
         N = data_fft.size
         print("FFT Size = ", N)
 
+        sample_spacing = self.capture_length / N
         #Only interested in positive range of the FFT
         frequency_resolution = self.sample_rate / N
-        xf = np.linspace(0, 1.0/(2.0*self.sample_spacing), int(N/2))
+        xf = np.linspace(0, frequency_resolution*(N//2), int(N/2))
+        modulus = 2.0/N * np.abs(data_fft[:N//2])
+
         #Set the x linear axis space to the amount of frequency bins in the FFT
         #Frequency bins are determined by the frequency resolution, or sampling_rate/N
 
@@ -91,15 +100,15 @@ class SignalTools:
 
         plt.figure('Fast Fourier transform')
         plt.grid(True, which="both")
-        plt.semilogy(xf, 2.0/N * np.abs(data_fft[:N//2]))
-        plt.xlim(0,1.0/(2.0*self.sample_spacing))
+        plt.semilogy(xf, modulus)
+        plt.xlim(0,1.0/(2.0*sample_spacing))
         plt.title(figure_title)
         
         plt.xlabel('Frequentie (Hz)')
         plt.ylabel('Amplitude')
-        
-        data_fft_real = data_fft.real
         plt.show(block=True)
+
+        return AttrDict(x=xf, y=modulus, freq=frequency_resolution)
 
         #TODO Make FFT function return the result rather than plotting in function
         #TODO Include the FFT peaks in the result
@@ -164,7 +173,7 @@ class SignalTools:
         slice_int = chunk_size//3
         min_maxed = np.zeros(slice_int)
         if(anti_alias):
-            antialias = filterInterface.low_pass(data, nyquist-0.01, order=3, plot=True)
+            antialias = filterInterface.low_pass(data, nyquist-0.01, order=3, plot=False)
             it = iter(antialias.filtered_data)
         else:
             it = iter(data)

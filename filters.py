@@ -102,17 +102,18 @@ class Filters:
             plt.figure("Lowpass filter")
             plt.grid()
             ax = plt.subplot(2, 1, 1)
-            plt.plot(data, label="Before filter", color='r')
+            plt.plot(data, label="Impuls", color='r')
             plt.ylabel("Amplitude")
             plt.legend(loc='upper right')
-            plt.title("Effect of lowpass filter on the signal")
+            plt.title("Impuls respons van een low-pass filter")
 
-            plt.subplot(2, 1, 2, sharex=ax, sharey=ax)
-            plt.plot(filtered_data, label="After filter", color='g')
-            plt.xlabel("Sample")
+            plt.subplot(2, 1, 2)
+            plt.plot(filtered_data, label="Impuls respons", color='g')
+            plt.xlabel("Sample #")
             plt.ylabel("Amplitude")
+            plt.ylim=1
             plt.legend(loc="upper right")
-            plt.text(80000, -0.7, "cutoff = %sHz\norder=%s"%(cutoff, order))
+            plt.text(1000, 0.04, "cutoff = %sHz\norder=%s"%(cutoff, order))
             self.show_filter_response(result)
             self.signalInterface.fft_plot(result.filtered_data, 'FFT on low-passed signal')
 
@@ -212,7 +213,7 @@ class Filters:
             print(colored("Cannot display filter response on non-linear filter!", 'red'))
             return
 
-        w, h = signal.sosfreqz(filtered_dict.sos, worN=100000)
+        w, h = signal.sosfreqz(filtered_dict.sos)
         plt.figure("Frequency response")
         plt.plot((self.nyquist_freq / np.pi) * w, abs(h))
         plt.plot([0, self.nyquist_freq], [np.sqrt(0.5), np.sqrt(0.5)],
