@@ -30,9 +30,8 @@
 import matplotlib.pyplot as plt
 import scipy.signal as signal
 import scipy.fft as fourier
+import scipy.linalg
 import numpy as np
-import filters
-import signal_tools
 import neurokit2 as nk
 from termcolor import colored
 import sys
@@ -42,25 +41,53 @@ from sklearn.preprocessing import StandardScaler
 from sklearn.preprocessing import normalize
 import pandas as pd
 
+from filters import Filters
+from signal_tools import SignalTools
+
+
+capture_length = 10
+
 #NOTE
 #The data in this CSV is sampled at a sample rate of 125Hz
+#Respiratory rate in this data = 20/min
 def importCSV(filename, num_of_breaths):
+
+
+    """
+    Process CSV to read the raw values, modify "ECG" to column name which holds the data
+    """
     ss = StandardScaler()
     data = pd.read_csv(filename)
 
-    resp_data = data['Kolom2']
-    # reshaped = resp_data.values.reshape(-1, 1)
-    # resp_std = ss.fit_transform(reshaped)
+    resp_data = data['ECG']
     np_resp = np.array(resp_data)
-    plt.plot(np_resp)
 
-    return np_resp[0:1250]
+
+    """
+    Normalize the CSV data to 0-1 over the y-axis
+    """
+    normalized_resp = np.zeros(len(np_resp))
+    min_resp = min(np_resp)
+    max_resp = max(np_resp)             
+
+    for idx, value in enumerate(np_resp):
+        normalized_resp[idx] = (np_resp[idx] - min_resp) / (max_resp - min_resp)
+
+    """
+    Plot the data and slice to amount of breaths. Note that these numbers are static with a sample rate of 125.
+    """
+    plt.plot(normalized_resp)
+    capture_length = num_of_breaths * 3
+
+    return normalized_resp[0:num_of_breaths*375]
 
 # ---------------------------Global variables--------------------------------------------
 # ---------------------------------------------------------------------------------------
 def main():
 
     seed(1)
+
+    resp_data = importCSV(filename='cleandata.csv', num_of_breaths=2)
 
     # Filter requirements.
     order = 5       # Filter order
@@ -78,34 +105,15 @@ def main():
     adc_bit_resolution = 1024
 
     # Simulated period of time in seconds that the ecg is captured in
-    capture_length = 10
+
 
 
     # ---------------------------Start of all scripting logic--------------------------------
     # ---------------------------------------------------------------------------------------
 
     # The Filter class holds all our filters, we can pass our data to a filter in this class and we get the filtered result.
-    filterInterface = filters.Filters(sample_rate, capture_length)
-    signalInterface = signal_tools.SignalTools(sample_rate, capture_length)
-    signalInterfacePlot = signal_tools.SignalTools(sample_rate, capture_length=2)
-
-
-
-
-    # The "Daubechies" wavelet is a rough approximation to a real,
-    # single, heart beat ("pqrst") signal
-    pqrst = signal.wavelets.daub(10)
-
-    # Add the gap after the pqrst when the heart is resting. 
-    zero_array = np.zeros(samples_rest, dtype=float)
-    pqrst_full = np.concatenate([pqrst,zero_array])
-
-    # Caculate the number of beats in capture time period 
-    # Round the number to simplify things
-    num_heart_beats = int(capture_length * bps)
-
-    # Concatonate together the number of heart beats needed
-    ecg_template = np.tile(pqrst_full , num_heart_beats)
+    filterInterface = Filters(sample_rate, capture_length)
+    signalInterface = SignalTools(sample_rate, capture_length)
 
 
     # Create sine waves for respiratory signal (.2Hz) and for mains hum (50Hz)
@@ -113,7 +121,6 @@ def main():
     # the Neurokit2 library, the respiratory rate is amount of breath cycles per minute.
     # nk_respiratory = nk.rsp_simulate(duration=capture_length, sampling_rate=sample_rate, respiratory_rate=20)
     sine_respiratory = signalInterface.sine_generator(5)
-    sine_respiratory_tiny = signalInterfacePlot.sine_generator(5)
     sine_mains = signalInterface.sine_generator(50, 0.1)
     sine_alias = signalInterface.sine_generator(50)
 
@@ -134,8 +141,8 @@ def main():
     """
     # respiratory_noisy =  (nk_respiratory + sine_mains) 
     alias_test = sine_respiratory + sine_alias
-    # resp_data = importCSV(filename='real.csv', num_of_breaths=2)
-    impulse = signal.unit_impulse(num_samples, 'mid')
+
+    impulse = signal.unit_impulse(num_samples)
 
 
     """
@@ -147,25 +154,16 @@ def main():
     # signalInterfaceLowRes = signal_tools.SignalTools(sample_rate//downsample_factor, capture_length)
     # filterInterfaceLowRes = filters.Filters(sample_rate//downsample_factor, capture_length)
 
+    
 
+    fir = signal.firwin(numtaps=101, cutoff=5, fs=125)
+
+    
     """
     Applying filters or FFT's
     """
-    lo_impulse = filterInterface.low_pass(impulse, 5, 10)
-    fft_result = signalInterface.fft_plot(lo_impulse.filtered_data, figure_title="FFT op impuls respons")
+    filterInterface.bandpass(resp_data, 1, 5, 10, True)
 
-
-    min_y = min(fft_result.y)
-    max_y = max(fft_result.y)                   #NORMALIZE DATA TO 0..1
-    norm = np.zeros(len(fft_result.y))
-
-    for idx, value in enumerate(fft_result.y):
-        norm[idx] = (fft_result.y[idx] - min_y) / max_y - min_y
-
-
-    #make some pretty plots
-    plt.plot(fft_result.x, norm)
-    plt.xlim(0,10)      #WE DID IT REDDIT
 
 
 

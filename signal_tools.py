@@ -50,10 +50,10 @@ class SignalTools:
 
     Parameters
     ----------
-    sample_rate : int, float
-        Sampling rate to use with the functions.
-    capture_length : int
-        Time or duration of signal.
+    sample_rate : `int`, `float` 
+        Sampling rate to use with the functions.\n
+    capture_length : `int`
+        Time or duration of signal.\n
 
     Notes
     -----
@@ -68,17 +68,22 @@ class SignalTools:
         self.num_samples = capture_length * sample_rate
 
 
-    def fft_plot(self, data, figure_title):
+    def fft_plot(self, data):
         """
         Plot the fast-fourier transform of a passed array, use this to analyze
         the frequency-domain of your signals.
 
         Parameters
         ----------
-        data : array-like
-            Signal array to be analyzed.
-        figure_title : string
-            Title of the plot    
+        data : `array-like`
+            Signal array to be analyzed.\n
+
+        Returns
+        ---------- 
+        result : `AttrDict`\n
+            result.x : Linear space of x-axis for the FFT to be plotted on \n
+            result.y : Modulus of each frequency bin in the FFT, use this as y-axis \n
+            result.freq : Frequency resolution of the FFT \n
 
         """
 
@@ -102,13 +107,14 @@ class SignalTools:
         plt.grid(True, which="both")
         plt.semilogy(xf, modulus)
         plt.xlim(0,1.0/(2.0*sample_spacing))
-        plt.title(figure_title)
+        plt.title("FFT")
         
         plt.xlabel('Frequentie (Hz)')
         plt.ylabel('Amplitude')
         plt.show(block=True)
 
-        return AttrDict(x=xf, y=modulus, freq=frequency_resolution)
+        result = AttrDict(x=xf, y=modulus, freq=frequency_resolution)
+        return result
 
         #TODO Make FFT function return the result rather than plotting in function
         #TODO Include the FFT peaks in the result
@@ -122,15 +128,15 @@ class SignalTools:
 
         Parameters
         ----------
-        sinefreq : int, float
-            Frequency of the generated sine-wave
-        amplite_modifier: float 
-            Adjusts the amplitude of the sine wave to be larger (>1) or smaller (<1). Defaults to 1
+        sinefreq : `int`, `float`
+            Frequency of the generated sine-wave \n
+        amplite_modifier: `float`
+            Adjusts the amplitude of the sine wave to be larger (>1) or smaller (<1). Defaults to 1 \n
 
         Returns
         ----------
-        y_sine : array_like
-            Generated sine-wave
+        y_sine : `array_like`
+            Generated sine-wave\n
 
         Notes
         ----------
@@ -155,7 +161,10 @@ class SignalTools:
             1D array to be downsampled\n
         chunk_size: `int` 
             chunks in which the array will be divided, can also be interpreted as downsample factor\n
-            For example, input array of size 100 with a chunk size of 20 will result in an array of size 5
+            For example, input array of size 100 with a chunk size of 20 will result in an array of size 5 \n
+        anti_alias: `bool`
+            Defaults to True. Applies a low-pass filter to the signal before downsampling to prevent aliasing.
+            Skips this step when False. 
 
         Returns
         ----------
@@ -173,8 +182,8 @@ class SignalTools:
         slice_int = chunk_size//3
         min_maxed = np.zeros(slice_int)
         if(anti_alias):
-            antialias = filterInterface.low_pass(data, nyquist-0.01, order=3, plot=False)
-            it = iter(antialias.filtered_data)
+            antialias = filterInterface.lowpass(data, nyquist-0.01, order=3, plot=False)
+            it = iter(antialias.data)
         else:
             it = iter(data)
         sliced_data = list(iter(lambda: tuple(islice(it, chunk_size)), ()))

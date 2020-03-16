@@ -32,7 +32,7 @@ import matplotlib.pyplot as plt
 import warnings
 from termcolor import colored
 import signal_tools
-
+import traceback
 
 class AttrDict(dict):
     def __init__(self, *args, **kwargs):
@@ -49,8 +49,8 @@ class Filters:
     ----------
     sample_rate : `int, float`
         Sampling rate to use with the functions.\n
-    capture_length : `int, float`
-        Duration of signal
+    capture_length : `int`, `float`
+        Duration of signal \n
     
 
     Notes
@@ -68,13 +68,13 @@ class Filters:
         self.signalInterface = signal_tools.SignalTools(sampling_rate, capture_length)
 
 
-    def low_pass(self, data, cutoff, order, plot=False):
+    def lowpass(self, data, cutoff, order, plot=False):
         """
         Low-pass filter
-        A low-pass (in this case a Butterworth) filter, passes "all" frequencies below a given cuttoff frequency and filters the 
+        IIR LTI Filter: A low-pass (in this case a Butterworth) filter, passes "all" frequencies below a given cuttoff frequency and filters the 
         frequencies above this cutoff. The order defines the steepness of the cutoff. 
         Useful for filtering recurrent noise at high frequency rates or to prevent aliasing. https://en.wikipedia.org/wiki/Butterworth_filter
-
+        
         Parameters
         ----------
         data : `array_like`       
@@ -88,15 +88,21 @@ class Filters:
 
         Returns
         ----------
-        result : `AttrDict`
-            Filtered signal as "filtered_data", filter characteristics as "sos", filter name as "filter_name" and cutoff as "cutoff
-            These attributes can be accessed as-if they were object attributes (e.g. result.sos)"
+        result : `AttrDict`\n
+            result.data          : The output signal from the filter\n
+            result.sos           : The filter coefficients in Second Order Section form \n
+            result.name          : Name of the filter\n
+            result.cutoff        : Cutoff frequency used in the filter \n
+            result.b             : Numerator of the filter polynomial \n
+            result.a             : Denominator of the filter polynomial
+            
         """
         normal_cutoff = cutoff / self.nyquist_freq
 
         sos = signal.butter(order, normal_cutoff, btype='low', analog=False, output='sos')
+        b, a = signal.butter(order, normal_cutoff, btype='low', analog=False, output='ba')
         filtered_data = signal.sosfiltfilt(sos, data)
-        result = AttrDict(filtered_data=filtered_data, sos=sos, filter_name="Low pass filter", cutoff=cutoff)
+        result = AttrDict(data=filtered_data, sos=sos, name="Low pass filter", cutoff=cutoff, b=b, a=a)
 
         if(plot):
             plt.figure("Lowpass filter")
@@ -115,38 +121,45 @@ class Filters:
             plt.legend(loc="upper right")
             plt.text(1000, 0.04, "cutoff = %sHz\norder=%s"%(cutoff, order))
             self.show_filter_response(result)
-            self.signalInterface.fft_plot(result.filtered_data, 'FFT on low-passed signal')
+            self.signalInterface.fft_plot(result.data)
 
     
         return result
 
 
-    def high_pass(self, data, cutoff, order, plot=False):
+    def highpass(self, data, cutoff, order, plot=False):
         """
         A high-pass filter functions as the opposite of a low-pass filter. It passes frequencies above a given cutoff and filters 
         frequencies below this cutoff. This filter is a modification of the Butterworth (low-pass) filter. 
 
         Parameters
         ----------
-        data : array_like       
-            The array to be filtered
-        cutoff : int, float     
-            Desired cutoff frequency
-        order   : int
-            Order of the filter
+        data : `array_like`       
+            The array to be filtered\n
+        cutoff : `int, float`     
+            Desired cutoff frequency\n
+        order   : `int`
+            Order of the filter\n
         plot : `bool`
             True if you want to plot filter characteristics and result, defaults to False
 
         Returns
         ----------
-        result : AttrDict
-            Filtered signal as "filtered_data", filter characteristics as "sos", filter name as "filter_name" and cutoff as "cutoff
-            These attributes can be accessed as-if they were object attributes (e.g. result.sos)"
+        result : `AttrDict`\n
+            result.data          : The output signal from the filter\n
+            result.sos           : The filter coefficients in Second Order Section form \n
+            result.name          : Name of the filter\n
+            result.cutoff        : Cutoff frequency used in the filter \n
+            result.b             : Numerator of the filter polynomial \n
+            result.a             : Denominator of the filter polynomial
+            
         """
         normal_cutoff = cutoff / self.nyquist_freq
         sos = signal.butter(order, normal_cutoff, btype='high', analog=False, output='sos')
+        b,a = signal.butter(order, normal_cutoff, btype='high', analog=False, output='ba')
         filtered_data = signal.sosfiltfilt(sos, data)
-        result = AttrDict(filtered_data=filtered_data, sos=sos, filter_name="High pass filter", cutoff=cutoff)
+        result = AttrDict(data=filtered_data, sos=sos, name="High pass filter", cutoff=cutoff, b=b, a=a)
+
         if(plot):
             plt.figure("Highpass filter")
             plt.grid()
@@ -165,50 +178,108 @@ class Filters:
             plt.legend(loc="upper right")
             plt.text(80000, -0.7, "cutoff = %sHz\norder=%s"%(cutoff, order))
             self.show_filter_response(result)
-            self.signalInterface.fft_plot(result.filtered_data, 'FFT on high-passed signal')
+            self.signalInterface.fft_plot(result.data)
 
         return result
 
 
-    """ 
-    -----------------------------------------------------------------------------------------------------------------------------
-    Median filter 
-    Median filters excel in filtering out random noise. It functions by averageing the i-1, i and i+1 values of a given array and 
-    replacing i by the found median of 
-    those 3 values. In our case, with lots of recurring and periodic noise, the median filter is not very effective.
-    @Parameters: 
-        data:       The array to be filtered
-    @Returns
-        Array with median filter applied
-    -----------------------------------------------------------------------------------------------------------------------------
-    """
-    def median_filter(self, data, kernel_size):
+    def median(self, data, kernel_size, plot=False):
+        """
+        A high-pass filter functions as the opposite of a low-pass filter. It passes frequencies above a given cutoff and filters 
+        frequencies below this cutoff. This filter is a modification of the Butterworth (low-pass) filter. 
 
-        plt.figure("Median filter")
-        plt.grid()
+        Parameters
+        ----------
+        data        : `array_like`       
+            The array to be filtered\n
+        kernel_size : `int`     
+            Must be odd! Kernel window which will be used to calculate averagee around the current value\n
+        plot : `bool`
+            True if you want to plot filter characteristics and result, defaults to False\n
 
-        ax = plt.subplot(2, 1, 1)
-        plt.plot(data, label="Before filter", color='r')
-        plt.ylabel("Amplitude")
-        plt.legend(loc='upper right')
-        plt.title("Effect of median filter on the signal")
+        Returns
+        ----------
+        result : `AttrDict`\n
+            result.data          : The output signal from the filter\n
+            result.name          : Name of the filter\n
+            result.kernel_size   : Size of the kernel window \n
+            
+        """
+        if(kernel_size%2==0):
+            print(colored("Median filter kernel size must be odd!\n", 'red'))
+            return
 
         filtered_data = signal.medfilt(data, kernel_size=kernel_size)
 
-        ax2 = plt.subplot(2, 1, 2, sharex=ax, sharey=ax)
-        plt.plot(filtered_data, label="After filter", color='g')
-        plt.xlabel("Sample")
-        plt.ylabel("Amplitude")
-        plt.legend(loc="upper right")
-        plt.text(70000, -0.7, "kernel size = %s"%(kernel_size))
-        self.signalInterface.fft_plot(filtered_data, 'FFT on median filtered signal')
+        if(plot):
+            plt.figure("Median filter")
+            plt.grid()
 
-        result = AttrDict(filtered_data=filtered_data, filter_name="Median Filter", kernel_size=kernel_size)
+            ax = plt.subplot(2, 1, 1)
+            plt.plot(data, label="Before filter", color='r')
+            plt.ylabel("Amplitude")
+            plt.legend(loc='upper right')
+            plt.title("Effect of median filter on the signal")
+
+            ax2 = plt.subplot(2, 1, 2, sharex=ax, sharey=ax)
+            plt.plot(filtered_data, label="After filter", color='g')
+            plt.xlabel("Sample")
+            plt.ylabel("Amplitude")
+            plt.legend(loc="upper right")
+            plt.text(70000, -0.7, "kernel size = %s"%(kernel_size))
+            self.signalInterface.fft_plot(filtered_data)
+
+        
+        result = AttrDict(data=filtered_data, name="Median Filter", kernel_size=kernel_size)
         return result
 
 
 
+    def bandpass(self, data, lowcut, highcut, order, plot=False):
+        normal_low = lowcut / self.nyquist_freq
+        normal_high = highcut / self.nyquist_freq
+        sos = signal.butter(order, [normal_low, normal_high], btype='band', analog=False, output='sos')
+        b, a = signal.butter(order, [normal_low, normal_high], btype='band', analog=False, output='ba')
+        filtered_data = signal.sosfiltfilt(sos, data)
+
+        result = AttrDict(data=filtered_data, sos=sos, name="Bandpass filter", cutoff=[lowcut, highcut], b=b, a=a)
+
+        if(plot):
+            plt.figure("Bandpass filter")
+            plt.grid()
+
+            ax = plt.subplot(2, 1, 1)
+            plt.plot(data, label="Before filter", color='r')
+            plt.ylabel("Amplitude")
+            plt.legend(loc='upper right')
+            plt.title("Effect of bandpass filter on the signal")
+
+
+            plt.subplot(2, 1, 2, sharex=ax, sharey=ax)
+            plt.plot(filtered_data, label="After filter", color='g')
+            plt.xlabel("Sample")
+            plt.ylabel("Amplitude")
+            plt.legend(loc="upper right")
+            # plt.text(80000, -0.7, "cutoff = %sHz\norder=%s"%(cutoff, order))
+            self.show_filter_response(result)
+            self.signalInterface.fft_plot(result.data)
+
+        return result
+
     def show_filter_response(self, filtered_dict):
+        """
+        Shows the frequency response of a given LTI filter. 
+
+        Parameters
+        ----------
+        filtered_dict : 'dict' \n
+        Pass the dict that was returned from a filter function. 
+
+        Returns
+        ----------
+        none
+        """
+
         if "sos" not in filtered_dict:
             print(colored("Cannot display filter response on non-linear filter!", 'red'))
             return
@@ -220,12 +291,13 @@ class Filters:
                 '--', label='-3dB')
         
         if "cutoff" in filtered_dict:
-            plt.axvline(x=filtered_dict.cutoff, color='green', linestyle='--', label='Cuttoff frequency')
+            for i in filtered_dict.cutoff:
+                plt.axvline(x=i, color='green', linestyle='--', label='Cuttoff frequency')
 
         plt.xlabel('Frequency (Hz)')
         plt.ylabel('Gain')
         plt.grid(True)
         plt.legend(loc='best')
-        plt.xlim(right=filtered_dict.cutoff*2, left=0)
-        plt.title(filtered_dict.filter_name)
+        plt.xlim(left=0, right=self.nyquist_freq)
+        plt.title(filtered_dict.name)
 
