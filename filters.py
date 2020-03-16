@@ -47,10 +47,10 @@ class Filters:
 
     Parameters
     ----------
-    sample_rate : `int, float`
-        Sampling rate to use with the functions.\n
-    capture_length : `int`, `float`
-        Duration of signal \n
+    sample_rate : `int`, `float`\n
+        Sampling rate to use with the functions.
+    capture_length : `int`, `float`\n
+        Duration of signal 
     
 
     Notes
@@ -68,7 +68,7 @@ class Filters:
         self.signalInterface = signal_tools.SignalTools(sampling_rate, capture_length)
 
 
-    def lowpass(self, data, cutoff, order, plot=False):
+    def lowpass(self, data, cutoff, order, ftype, plot=False):
         """
         Low-pass filter
         IIR LTI Filter: A low-pass (in this case a Butterworth) filter, passes "all" frequencies below a given cuttoff frequency and filters the 
@@ -77,44 +77,58 @@ class Filters:
         
         Parameters
         ----------
-        data : `array_like`       
-            The array to be filtered\n
-        cutoff : `int, float`     
-            Desired cutoff frequency\n
-        order   : `int`
-            Order of the filter\n
-        plot : `bool`
+        data : `array_like`\n       
+            The array to be filtered
+        cutoff : `int, float`\n     
+            Desired cutoff frequency
+        order   : `int`\n
+            Order of the filter
+        ftype : `string`\n
+            Filter type, must be either IIR or FIR
+        plot : `bool`\n
             True if you want to plot filter characteristics and result, defaults to False
 
         Returns
         ----------
         result : `AttrDict`\n
             result.data          : The output signal from the filter\n
-            result.sos           : The filter coefficients in Second Order Section form \n
+            result.sos           : The filter coefficients in Second Order Section form (Only if ftype = IIR)\n
             result.name          : Name of the filter\n
             result.cutoff        : Cutoff frequency used in the filter \n
             result.b             : Numerator of the filter polynomial \n
-            result.a             : Denominator of the filter polynomial
+            result.a             : Denominator of the filter polynomial\n
+            result.ftype         : Classification of the filter (IIR or FIR)
             
         """
         normal_cutoff = cutoff / self.nyquist_freq
 
-        sos = signal.butter(order, normal_cutoff, btype='low', analog=False, output='sos')
-        b, a = signal.butter(order, normal_cutoff, btype='low', analog=False, output='ba')
-        filtered_data = signal.sosfiltfilt(sos, data)
-        result = AttrDict(data=filtered_data, sos=sos, name="Low pass filter", cutoff=cutoff, b=b, a=a)
+        if(ftype == "IIR"):
+            sos = signal.butter(order, normal_cutoff, btype='low', analog=False, output='sos')
+            b, a = signal.butter(order, normal_cutoff, btype='low', analog=False, output='ba')
+            filtered_data = signal.sosfiltfilt(sos, data)
+            result = AttrDict(data=filtered_data, sos=sos, name="Lowpass filter", cutoff=cutoff, b=b, a=a, ftype="IIR")
+
+        elif(ftype == "FIR"):
+            b = signal.firwin(numtaps=order+1, cutoff=normal_cutoff)
+            a = 1.0   #Denominator in an FIR system is 1
+            filtered_data = signal.lfilter(b, a, data)
+            result = AttrDict(data=filtered_data, name="Lowpass filter", cutoff=cutoff, b=b, a=a, ftype="FIR")
+
+        else:
+            print(colored("Filter type must be either IIR or FIR", 'red'))
+            return 
 
         if(plot):
             plt.figure("Lowpass filter")
             plt.grid()
             ax = plt.subplot(2, 1, 1)
-            plt.plot(data, label="Impuls", color='r')
+            plt.plot(data, label="Voor filter", color='r')
             plt.ylabel("Amplitude")
             plt.legend(loc='upper right')
-            plt.title("Impuls respons van een low-pass filter")
+            plt.title("Effect van een low-pass filter %s" %(ftype))
 
             plt.subplot(2, 1, 2)
-            plt.plot(filtered_data, label="Impuls respons", color='g')
+            plt.plot(filtered_data, label="Na filter", color='g')
             plt.xlabel("Sample #")
             plt.ylabel("Amplitude")
             plt.ylim=1
@@ -127,19 +141,21 @@ class Filters:
         return result
 
 
-    def highpass(self, data, cutoff, order, plot=False):
+    def highpass(self, data, cutoff, order, ftype, plot=False):
         """
         A high-pass filter functions as the opposite of a low-pass filter. It passes frequencies above a given cutoff and filters 
         frequencies below this cutoff. This filter is a modification of the Butterworth (low-pass) filter. 
 
         Parameters
         ----------
-        data : `array_like`       
-            The array to be filtered\n
-        cutoff : `int, float`     
-            Desired cutoff frequency\n
-        order   : `int`
-            Order of the filter\n
+        data : `array_like`\n       
+            The array to be filtered
+        cutoff : `int, float`\n     
+            Desired cutoff frequency
+        order   : `int`\n
+            Order of the filter
+        ftype   : `string`\n
+            Type of the filter, must be either FIR or IIR
         plot : `bool`
             True if you want to plot filter characteristics and result, defaults to False
 
@@ -151,14 +167,26 @@ class Filters:
             result.name          : Name of the filter\n
             result.cutoff        : Cutoff frequency used in the filter \n
             result.b             : Numerator of the filter polynomial \n
-            result.a             : Denominator of the filter polynomial
+            result.a             : Denominator of the filter polynomial \n
+            result.ftype         : Classification of the filter (IIR or FIR)
             
         """
         normal_cutoff = cutoff / self.nyquist_freq
-        sos = signal.butter(order, normal_cutoff, btype='high', analog=False, output='sos')
-        b,a = signal.butter(order, normal_cutoff, btype='high', analog=False, output='ba')
-        filtered_data = signal.sosfiltfilt(sos, data)
-        result = AttrDict(data=filtered_data, sos=sos, name="High pass filter", cutoff=cutoff, b=b, a=a)
+        if(ftype == "IIR"):
+            sos = signal.butter(order, normal_cutoff, btype='high', analog=False, output='sos')
+            b, a = signal.butter(order, normal_cutoff, btype='high', analog=False, output='ba')
+            filtered_data = signal.sosfiltfilt(sos, data)
+            result = AttrDict(data=filtered_data, sos=sos, name="Highpass filter", cutoff=cutoff, b=b, a=a, ftype="IIR")
+
+        elif(ftype == "FIR"):
+            b = signal.firwin(numtaps=order+1, cutoff=normal_cutoff, pass_zero='highpass')
+            a = 1.0   #Denominator in an FIR system is 1
+            filtered_data = signal.lfilter(b, a, data)
+            result = AttrDict(data=filtered_data, name="Highpass filter", cutoff=cutoff, b=b, a=a, ftype="FIR")
+
+        else:
+            print(colored("Filter type must be either IIR or FIR", 'red'))
+            return 
 
         if(plot):
             plt.figure("Highpass filter")
@@ -168,7 +196,7 @@ class Filters:
             plt.plot(data, label="Before filter", color='r')
             plt.ylabel("Amplitude")
             plt.legend(loc='upper right')
-            plt.title("Effect of highpass filter on the signal")
+            plt.title("Effect van een high-pass filter %s" %(ftype))
 
 
             plt.subplot(2, 1, 2, sharex=ax, sharey=ax)
@@ -190,12 +218,12 @@ class Filters:
 
         Parameters
         ----------
-        data        : `array_like`       
-            The array to be filtered\n
-        kernel_size : `int`     
-            Must be odd! Kernel window which will be used to calculate averagee around the current value\n
-        plot : `bool`
-            True if you want to plot filter characteristics and result, defaults to False\n
+        data    : `array_like`\n       
+            The array to be filtered
+        kernel_size : `int`\n     
+            Must be odd! Kernel window which will be used to calculate averagee around the current value
+        plot : `bool`\n
+            True if you want to plot filter characteristics and result, defaults to False
 
         Returns
         ----------
@@ -235,14 +263,54 @@ class Filters:
 
 
 
-    def bandpass(self, data, lowcut, highcut, order, plot=False):
+    def bandpass(self, data, lowcut, highcut, order, ftype, plot=False):
+        """
+        A bandpass filter is a combination of a lowpass and a highpass filter. It has both a lowcut and a highcut, and passes data only between those.
+
+        Parameters
+        ----------
+        data : `array_like`\n       
+            The array to be filtered
+        lowcut : `int, float`\n     
+            Desired low cutoff frequency
+        highcut : `int, float`\n     
+            Desired high cutoff frequency
+        order   : `int`\n
+            Order of the filter
+        ftype   : `string`\n
+            Type of the filter, must be either FIR or IIR
+        plot : `bool`
+            True if you want to plot filter characteristics and result, defaults to False
+
+        Returns
+        ----------
+        result : `AttrDict`\n
+            result.data          : The output signal from the filter\n
+            result.sos           : The filter coefficients in Second Order Section form \n
+            result.name          : Name of the filter\n
+            result.cutoff        : Cutoff frequency used in the filter \n
+            result.b             : Numerator of the filter polynomial \n
+            result.a             : Denominator of the filter polynomial \n
+            result.ftype         : Classification of the filter (IIR or FIR)
+            
+        """
+
         normal_low = lowcut / self.nyquist_freq
         normal_high = highcut / self.nyquist_freq
-        sos = signal.butter(order, [normal_low, normal_high], btype='band', analog=False, output='sos')
-        b, a = signal.butter(order, [normal_low, normal_high], btype='band', analog=False, output='ba')
-        filtered_data = signal.sosfiltfilt(sos, data)
 
-        result = AttrDict(data=filtered_data, sos=sos, name="Bandpass filter", cutoff=[lowcut, highcut], b=b, a=a)
+        if(ftype == "IIR"):
+            sos = signal.butter(order, [normal_low, normal_high], btype='band', analog=False, output='sos')
+            b, a = signal.butter(order, [normal_low, normal_high], btype='band', analog=False, output='ba')
+            filtered_data = signal.sosfiltfilt(sos, data)
+            result = AttrDict(data=filtered_data, sos=sos, name="Bandpass filter", cutoff=[lowcut, highcut], b=b, a=a, ftype="IIR")
+        elif(ftype == "FIR"):
+            b = signal.firwin(numtaps=order+1, cutoff=[normal_low, normal_high], pass_zero=False)
+            a = 1.0   #Denominator in an FIR system is 1
+            filtered_data = signal.lfilter(b, a, data)
+            result = AttrDict(data=filtered_data, name="Bandpass filter", cutoff=[lowcut, highcut], b=b, a=a, ftype="FIR") 
+        else:
+            print(colored("Filter type must be either IIR or FIR", 'red'))
+            return
 
         if(plot):
             plt.figure("Bandpass filter")
@@ -279,25 +347,31 @@ class Filters:
         ----------
         none
         """
-
-        if "sos" not in filtered_dict:
-            print(colored("Cannot display filter response on non-linear filter!", 'red'))
-            return
-
-        w, h = signal.sosfreqz(filtered_dict.sos)
         plt.figure("Frequency response")
+
+        if(filtered_dict.ftype=="IIR"):
+            w, h = signal.sosfreqz(filtered_dict.sos)
+            plt.title("%s IIR" %(filtered_dict.name))
+        elif(filtered_dict.ftype=="FIR"):
+            w, h = signal.freqz(filtered_dict.b)
+            plt.title("%s FIR" %(filtered_dict.name))
+        else:
+            print(colored("Cannot show frequency respons of non-LTI filter!"), 'red')
+
         plt.plot((self.nyquist_freq / np.pi) * w, abs(h))
         plt.plot([0, self.nyquist_freq], [np.sqrt(0.5), np.sqrt(0.5)],
                 '--', label='-3dB')
         
         if "cutoff" in filtered_dict:
-            for i in filtered_dict.cutoff:
-                plt.axvline(x=i, color='green', linestyle='--', label='Cuttoff frequency')
-
+            if(type(filtered_dict.cutoff) != int):
+                for i in filtered_dict.cutoff:
+                    plt.axvline(x=i, color='green', linestyle='--', label='Cuttoff frequency')      #Support multiple cutoffs for bandpass
+            else:
+                plt.axvline(x=filtered_dict.cutoff, color='green', linestyle='--', label='Cuttoff frequency')
         plt.xlabel('Frequency (Hz)')
         plt.ylabel('Gain')
         plt.grid(True)
         plt.legend(loc='best')
-        plt.xlim(left=0, right=self.nyquist_freq)
-        plt.title(filtered_dict.name)
+        plt.xlim(left=0, right=15)
+        
 

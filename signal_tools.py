@@ -90,13 +90,13 @@ class SignalTools:
         data_fft = fourier.fft(data)
 
         N = data_fft.size
-        print("FFT Size = ", N)
 
         sample_spacing = self.capture_length / N
         #Only interested in positive range of the FFT
         frequency_resolution = self.sample_rate / N
         xf = np.linspace(0, frequency_resolution*(N//2), int(N/2))
         modulus = 2.0/N * np.abs(data_fft[:N//2])
+        modulus[0] = 0.0 #DC gain = 0
 
         #Set the x linear axis space to the amount of frequency bins in the FFT
         #Frequency bins are determined by the frequency resolution, or sampling_rate/N
