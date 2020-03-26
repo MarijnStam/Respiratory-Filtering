@@ -32,7 +32,6 @@ import scipy.signal as signal
 import scipy.fft as fourier
 import scipy.linalg
 import numpy as np
-import neurokit2 as nk
 from termcolor import colored
 import sys
 from random import seed
@@ -99,20 +98,21 @@ def importCSV(filename, num_of_breaths, plot=False):
     """
     if(plot):
         plt.figure("CSV Data")
-        plt.title("Raw data read from CSV")
+        plt.title("Ademhalingssignaal van patiëntsimulator")
         plt.xlabel("Sample")
-        plt.ylabel("Normalized amplitude")
-        plt.plot(normalized_resp)
+        plt.ylabel("Genormaliseerde amplitude")
+        plt.plot(normalized_resp[0:1500])
+        plt.show()
     capture_length = num_of_breaths * 3
-    result = normalized_resp[0:num_of_breaths*375]
-    return result
+    result = normalized_resp
+    return result[0:1250]
 
 
 def main():
 
     seed(1)
 
-    resp_data = importCSV(filename='cleandata.csv', num_of_breaths=2)
+    resp_data = importCSV(filename='./data/log2.csv', num_of_breaths=10, plot=False)
     num_samples = sample_rate * capture_length
 
 
@@ -159,19 +159,17 @@ def main():
     """
     Downscaling
     """
-    downsample_factor = 2
+    downsample_factor = 5
 
-    # resp_data_lo = signalInterface.downsample(resp_data, downsample_factor)
-    # signalInterfaceLowRes = signal_tools.SignalTools(sample_rate//downsample_factor, capture_length)
-    # filterInterfaceLowRes = filters.Filters(sample_rate//downsample_factor, capture_length)
+    resp_data_lo = signalInterface.decimate(sine_respiratory, downsample_factor)
+    resp_data_lo2 = signalInterface.downsample(sine_respiratory, downsample_factor)
+    signalInterfaceLowRes = SignalTools(sample_rate//downsample_factor, capture_length)
+    filterInterfaceLowRes = Filters(sample_rate//downsample_factor, capture_length)
 
-    
     
     """
     Applying filters or FFT's
     """
-    result = filterInterface.bandpass(resp_data, lowcut=0.1, highcut=1, order=10, ftype="IIR", plot=True)
-    filterInterface.lowpass
 
 
 
@@ -180,7 +178,8 @@ def main():
     Outputs and extra plotting
     """
 
-
+    signalInterfaceLowRes.fft_plot(resp_data_lo)
+    # signalInterfaceLowRes.fft_plot(resp_data_lo2)
     plt.show()
 
     print(colored('\nDone', 'green'))

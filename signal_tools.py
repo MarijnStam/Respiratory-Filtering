@@ -103,14 +103,21 @@ class SignalTools:
 
         #TODO Normalize the FFT results
 
+
+        max_idx = np.argmax(modulus)
+        peak = max_idx * frequency_resolution
+        
+
         plt.figure('Fast Fourier transform')
         plt.grid(True, which="both")
         plt.semilogy(xf, modulus)
-        plt.xlim(0,1.0/(2.0*sample_spacing))
+        plt.xlim(0,self.sample_rate/2)
         plt.title("FFT")
         
         plt.xlabel('Frequentie (Hz)')
         plt.ylabel('Amplitude')
+        plt.scatter(x=peak, y=np.max(modulus), color='green', label='Piek bij: %0.5sHz' %peak)
+        plt.legend()
         plt.show(block=True)
 
         result = AttrDict(x=xf, y=modulus, freq=frequency_resolution)
@@ -182,7 +189,7 @@ class SignalTools:
         slice_int = chunk_size//3
         min_maxed = np.zeros(slice_int)
         if(anti_alias):
-            antialias = filterInterface.lowpass(data, nyquist-0.01, order=3, plot=False)
+            antialias = filterInterface.lowpass(data, nyquist-0.01, order=8, ftype="IIR", plot=False)
             it = iter(antialias.data)
         else:
             it = iter(data)
@@ -201,4 +208,46 @@ class SignalTools:
 
         return downsampled
 
-    
+    def decimate(self, data, factor, anti_alias=True):
+            """
+            Returns an array which is decimated by a factor. Decimation simply means that out of every M samples, 1 is kept and the rest is discarded,
+            M is the factor.
+
+            Parameters
+            ----------
+            data : `array_like`
+                1D array to be decimated\n
+            factor: `int` 
+                Factor by which the array is decimated.\n
+            anti_alias: `bool`
+                Defaults to True. Applies a low-pass filter to the signal before decimation to prevent aliasing.
+                Skips this step when False. 
+
+            Returns
+            ----------
+            downsampled : `array_like`
+                The decimated array.
+
+            """
+            downsampled_rate = self.sample_rate / factor
+            nyquist = downsampled_rate/2
+            filterInterface = filters.Filters(self.sample_rate, self.capture_length)
+
+            if(anti_alias):
+                antialias = filterInterface.lowpass(data, nyquist-0.01, order=8, ftype="IIR", plot=False)
+                it = iter(antialias.data)
+            else:
+                it = iter(data)
+            sliced_data = list(iter(lambda: tuple(islice(it, factor)), ()))
+            downsampled = np.zeros(len(sliced_data))
+
+
+            for idx, value in enumerate(sliced_data):
+                to_decimate = list(value)
+                downsampled[idx] = to_decimate[0]
+
+            print('Size of original data buffer: \n', len(data))
+            print('Size of decimated data buffer: \n', len(downsampled))
+
+            return downsampled
+        

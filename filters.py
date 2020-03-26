@@ -358,17 +358,18 @@ class Filters:
         else:
             print(colored("Cannot show frequency respons of non-LTI filter!"), 'red')
 
-        plt.plot((self.nyquist_freq / np.pi) * w, abs(h))
+        plt.plot((self.nyquist_freq / np.pi) * w, abs(h), label="IIR")
         plt.plot([0, self.nyquist_freq], [np.sqrt(0.5), np.sqrt(0.5)],
                 '--', label='-3dB')
         
+
         if "cutoff" in filtered_dict:
-            if(type(filtered_dict.cutoff) != int):
+            if(type(filtered_dict.cutoff) != int and type(filtered_dict.cutoff) != float):
                 for i in filtered_dict.cutoff:
-                    plt.axvline(x=i, color='green', linestyle='--', label='Cuttoff frequency')      #Support multiple cutoffs for bandpass
+                    plt.axvline(x=i, color='green', linestyle='--', label='Cuttoff=5Hz')      #Support multiple cutoffs for bandpass
             else:
-                plt.axvline(x=filtered_dict.cutoff, color='green', linestyle='--', label='Cuttoff frequency')
-        plt.xlabel('Frequency (Hz)')
+                plt.axvline(x=filtered_dict.cutoff, color='green', linestyle='--', label='Cuttoff frequentie')
+        plt.xlabel('Frequentie (Hz)')
         plt.ylabel('Gain')
         plt.grid(True)
         plt.legend(loc='best')
