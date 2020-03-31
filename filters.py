@@ -363,7 +363,7 @@ class Filters:
                 '--', label='-3dB')
         
         if "cutoff" in filtered_dict:
-            if(type(filtered_dict.cutoff) != int):
+            if(type(filtered_dict.cutoff) != int and type(filtered_dict.cutoff) != float):
                 for i in filtered_dict.cutoff:
                     plt.axvline(x=i, color='green', linestyle='--', label='Cuttoff frequency')      #Support multiple cutoffs for bandpass
             else:

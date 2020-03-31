@@ -43,7 +43,7 @@ from filters import Filters
 from signal_tools import SignalTools
 
 
-capture_length = 10
+
 sample_rate = 125   # sample rate, Hz
 
 #NOTE
@@ -80,7 +80,7 @@ def importCSV(filename, num_of_breaths, plot=False):
     """
     data = pd.read_csv(filename)
 
-    resp_data = data['ECG']
+    resp_data = data['Kolom2']
     np_resp = np.array(resp_data)
 
 
@@ -103,7 +103,7 @@ def importCSV(filename, num_of_breaths, plot=False):
         plt.xlabel("Sample")
         plt.ylabel("Normalized amplitude")
         plt.plot(normalized_resp)
-    capture_length = num_of_breaths * 3
+        plt.show()
     result = normalized_resp[0:num_of_breaths*375]
     return result
 
@@ -111,8 +111,9 @@ def importCSV(filename, num_of_breaths, plot=False):
 def main():
 
     seed(1)
-
-    resp_data = importCSV(filename='cleandata.csv', num_of_breaths=2)
+    num_of_breaths = 15
+    capture_length = num_of_breaths * 3
+    resp_data = importCSV(filename='real.csv', num_of_breaths=num_of_breaths, plot=True)
     num_samples = sample_rate * capture_length
 
 
@@ -170,18 +171,17 @@ def main():
     """
     Applying filters or FFT's
     """
-    result = filterInterface.bandpass(resp_data, lowcut=0.1, highcut=1, order=10, ftype="IIR", plot=True)
-    filterInterface.lowpass
 
+ 
 
 
 
     """
-    Outputs and extra plotting
+    PLAYGROUND
     """
-
-
-    plt.show()
+    
+    frequency = signalInterface.original_count(resp_data)
+    print(frequency)
 
     print(colored('\nDone', 'green'))
 
