@@ -237,9 +237,12 @@ class SignalTools:
 
         quartile = np.quantile(ordinates, .75)
         Q = 0.2 * quartile
-        plt.axhline(y=Q, color='green', linestyle='--', label='Threshold')
 
-        plt.plot(result.data)
+
+        plt.figure("Frequentie extractie")
+        plt.title("Originele count-methode")
+        plt.plot(result.data, label='Gefiltered signaal')
+        plt.axhline(y=Q, color='green', linestyle='--', label='Threshold')
 
         for i in maxima:
             for j in i:
@@ -264,10 +267,6 @@ class SignalTools:
             else:
                 break
 
-
-        for i in resp_cycles:
-            plt.vlines(x=i, color='orange', linestyle='--', ymax=result.data[int(i)], ymin=-0.04)
-
         plt.grid()
         plt.legend()
         plt.show()
@@ -276,5 +275,53 @@ class SignalTools:
         frequency = 1 / (mean / self.sample_rate)
         return frequency
 
-    # def advanced_counting(self, data):
+    def advanced_count(self, data):
+
+        filterInterface = filters.Filters(self.sample_rate, self.capture_length)
+        result = filterInterface.bandpass(data, lowcut=0.1, highcut=0.5, order=10, ftype="IIR", plot=False)
+        maxima = signal.find_peaks(result.data)
+        minima = signal.find_peaks(-result.data)    
+
+        true_extrema = vertical_diff = np.zeros(0)
+
+        plt.figure("Frequentie extractie")
+        plt.title("Geavanceerde count-methode")
+        plt.plot(result.data, label="Gefilterd signaal")
+        plt.xlabel("Amplitude")
+        plt.ylabel("Sample")
+
+        extrema = np.append(maxima[0], minima[0])  
+        extrema = np.delete(extrema, -1)
+        extrema.sort()
+
+        for idx, i in enumerate(extrema):
+            if(idx < len(extrema)-1):
+                vertical_diff = np.append(vertical_diff, np.abs(result.data[i] - result.data[extrema[idx+1]]))
+            else:
+                break
+
+        quartile = np.quantile(vertical_diff, .75)
+        Q = 0.3 * quartile
+        plt.axhline(y=Q, color='green', linestyle='--', label='Threshold')    
+
+        for idx, i in enumerate(vertical_diff):
+            if i > Q:
+                true_extrema = np.append(true_extrema, idx)
+
+        total_distance = 0
+        for idx, i in enumerate(true_extrema):
+            if(idx < len(true_extrema)-1):
+                x = extrema[int(i)]
+                plt.plot(x, result.data[x], 'ro')
+                total_distance = total_distance + (extrema[int(true_extrema[idx+1])] - x)
+            else:
+                break
+
+        mean = total_distance / len(true_extrema)
+        frequency = 1 / (2 * mean / self.sample_rate)
+        plt.grid()
+        plt.legend()
+        plt.show()
+
+        return(frequency)
 
