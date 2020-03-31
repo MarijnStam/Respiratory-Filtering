@@ -275,3 +275,6 @@ class SignalTools:
 
         frequency = 1 / (mean / self.sample_rate)
         return frequency
+
+    # def advanced_counting(self, data):
+

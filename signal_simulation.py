@@ -80,7 +80,7 @@ def importCSV(filename, num_of_breaths, plot=False):
     """
     data = pd.read_csv(filename)
 
-    resp_data = data['Kolom2']
+    resp_data = data['ECG']
     np_resp = np.array(resp_data)
 
 
@@ -180,9 +180,58 @@ def main():
     PLAYGROUND
     """
     
-    frequency = signalInterface.original_count(resp_data)
-    print(frequency)
 
+    result = filterInterface.bandpass(resp_data, lowcut=0.1, highcut=0.5, order=10, ftype="IIR", plot=False)
+
+    maxima = signal.find_peaks(result.data)
+    minima = signal.find_peaks(-result.data)    
+
+    true_extrema = vertical_diff = np.zeros(0)
+
+    plt.plot(result.data)
+    for i in maxima:
+        for j in i:
+               plt.plot(j, result.data[j], "ro")
+
+
+    for k in minima:
+        for l in k:
+            plt.plot(l, result.data[l], "ro", color="green")
+
+    extrema = np.append(maxima[0], minima[0])    
+    extrema.sort()
+
+    for idx, i in enumerate(extrema):
+        if(idx < len(extrema)-1):
+            vertical_diff = np.append(vertical_diff, np.abs(result.data[i] - result.data[extrema[idx+1]]))
+        else:
+            break
+    quartile = np.quantile(vertical_diff, .75)
+    Q = 0.5 * quartile
+    plt.axhline(y=Q, color='green', linestyle='--', label='Threshold')    
+
+    for idx, i in enumerate(vertical_diff):
+        if i > Q:
+            true_extrema = np.append(true_extrema, idx)
+
+    plt.grid()
+    plt.show()
+
+    plt.plot(result.data)
+    total_distance = 0
+    for idx, i in enumerate(true_extrema):
+        if(idx < len(true_extrema)-1):
+            x = extrema[int(i)]
+            plt.plot(x, result.data[x], 'ro')
+            total_distance = total_distance + (extrema[int(true_extrema[idx+1])] - x)
+        else:
+            break
+
+    mean = total_distance / len(true_extrema)
+    print(mean)
+
+    plt.grid()
+    plt.show()
     print(colored('\nDone', 'green'))
 
 
