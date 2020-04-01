@@ -42,7 +42,7 @@ from filters import Filters
 from signal_tools import SignalTools
 
 
-capture_length = 10
+
 sample_rate = 125   # sample rate, Hz
 
 #NOTE
@@ -100,19 +100,19 @@ def importCSV(filename, num_of_breaths, plot=False):
         plt.figure("CSV Data")
         plt.title("Ademhalingssignaal van patiëntsimulator")
         plt.xlabel("Sample")
-        plt.ylabel("Genormaliseerde amplitude")
-        plt.plot(normalized_resp[0:1500])
+        plt.ylabel("Normalized amplitude")
+        plt.plot(normalized_resp)
         plt.show()
-    capture_length = num_of_breaths * 3
-    result = normalized_resp
-    return result[0:1250]
+    result = normalized_resp[0:num_of_breaths*375]
+    return result
 
 
 def main():
 
     seed(1)
-
-    resp_data = importCSV(filename='./data/log2.csv', num_of_breaths=10, plot=False)
+    num_of_breaths = 10
+    capture_length = num_of_breaths * 3
+    resp_data = importCSV(filename='real.csv', num_of_breaths=num_of_breaths, plot=True)
     num_samples = sample_rate * capture_length
 
 
@@ -171,20 +171,26 @@ def main():
     Applying filters or FFT's
     """
 
+ 
 
 
 
     """
-    Outputs and extra plotting
+    PLAYGROUND
     """
+    
 
-    signalInterfaceLowRes.fft_plot(resp_data_lo)
-    # signalInterfaceLowRes.fft_plot(resp_data_lo2)
-    plt.show()
+    result = filterInterface.bandpass(resp_data, lowcut=0.1, highcut=0.5, order=10, ftype="IIR", plot=True)
+
+    
+
+    print(signalInterface.advanced_count(resp_data))
+    print(signalInterface.original_count(resp_data))
+
 
     print(colored('\nDone', 'green'))
 
-
+    
 if __name__ == '__main__':
     try:
         main()

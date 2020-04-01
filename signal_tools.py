@@ -29,6 +29,7 @@
 import matplotlib.pyplot as plt
 import numpy as np
 import scipy.fft as fourier
+import scipy.signal as signal
 from itertools import islice
 from termcolor import colored
 import filters
@@ -168,7 +169,7 @@ class SignalTools:
             1D array to be downsampled\n
         chunk_size: `int` 
             chunks in which the array will be divided, can also be interpreted as downsample factor\n
-            For example, input array of size 100 with a chunk size of 20 will result in an array of size 5 \n
+            For example, input array of size 100 with a chunk size of 20 will data in an array of size 5 \n
         anti_alias: `bool`
             Defaults to True. Applies a low-pass filter to the signal before downsampling to prevent aliasing.
             Skips this step when False. 
@@ -251,3 +252,126 @@ class SignalTools:
 
             return downsampled
         
+
+
+
+    def original_count(self, data):
+        """
+        Original counting method
+        This function implements the original counting method to count respiratory cycles as described in:
+         https://link.springer.com/article/10.1007/s10439-007-9428-1
+        
+        Note that this method will apply a bandpass filter on the signal in range 0.1Hz - 0.5Hz. 
+        
+        Parameters
+        ----------
+        data : `array_like`\n       
+            The signal from which the frequency is to be extracted.
+        Returns
+        ----------
+        result : `float`\n
+            The found frequency in the signal.
+        """
+        filterInterface = filters.Filters(self.sample_rate, self.capture_length)
+        result = filterInterface.bandpass(data, lowcut=0.1, highcut=0.5, order=10, ftype="IIR", plot=False)
+
+        maxima = signal.find_peaks(result.data)
+        minima = signal.find_peaks(-result.data)
+
+        ordinates = np.zeros(len(maxima[0]))
+        true_maxima = true_minima = resp_cycles = np.zeros(0)
+
+        ordinates = np.zeros(len(maxima[0]))
+        for idx, i in enumerate(maxima[0]):
+            ordinates[idx] = result.data[i]
+
+        quartile = np.quantile(ordinates, .75)
+        Q = 0.2 * quartile
+
+
+        plt.figure("Frequentie extractie")
+        plt.title("Originele count-methode")
+        plt.plot(result.data, label='Gefiltered signaal')
+        plt.axhline(y=Q, color='green', linestyle='--', label='Threshold')
+
+        for i in maxima:
+            for j in i:
+                if result.data[j] > Q:
+                    true_maxima = np.append(true_maxima, j)
+                    plt.plot(j, result.data[j], "ro")
+
+
+        for k in minima:
+            for l in k:
+                if result.data[l] < 0:
+                    true_minima = np.append(true_minima, l)
+                    plt.plot(l, result.data[l], "ro", color="green")
+
+        total_distance = 0
+        for idx, i in enumerate(true_maxima):
+            if(idx < len(true_maxima)-1):
+                count = ((true_maxima[idx] < true_minima) & (true_minima < true_maxima[idx+1])).sum()
+                if(count == 1):
+                    resp_cycles = np.append(resp_cycles, true_maxima[idx])
+                    total_distance = total_distance + (true_maxima[idx+1] - true_maxima[idx])
+            else:
+                break
+
+        plt.grid()
+        plt.legend()
+        plt.show()
+        mean = total_distance / len(resp_cycles)
+
+        frequency = 1 / (mean / self.sample_rate)
+        return frequency
+
+    def advanced_count(self, data):
+
+        filterInterface = filters.Filters(self.sample_rate, self.capture_length)
+        result = filterInterface.bandpass(data, lowcut=0.1, highcut=0.5, order=10, ftype="IIR", plot=False)
+        maxima = signal.find_peaks(result.data)
+        minima = signal.find_peaks(-result.data)    
+
+        true_extrema = vertical_diff = np.zeros(0)
+
+        plt.figure("Frequentie extractie")
+        plt.title("Geavanceerde count-methode")
+        plt.plot(result.data, label="Gefilterd signaal")
+        plt.xlabel("Amplitude")
+        plt.ylabel("Sample")
+
+        extrema = np.append(maxima[0], minima[0])  
+        extrema = np.delete(extrema, -1)
+        extrema.sort()
+
+        for idx, i in enumerate(extrema):
+            if(idx < len(extrema)-1):
+                vertical_diff = np.append(vertical_diff, np.abs(result.data[i] - result.data[extrema[idx+1]]))
+            else:
+                break
+
+        quartile = np.quantile(vertical_diff, .75)
+        Q = 0.3 * quartile
+        plt.axhline(y=Q, color='green', linestyle='--', label='Threshold')    
+
+        for idx, i in enumerate(vertical_diff):
+            if i > Q:
+                true_extrema = np.append(true_extrema, idx)
+
+        total_distance = 0
+        for idx, i in enumerate(true_extrema):
+            if(idx < len(true_extrema)-1):
+                x = extrema[int(i)]
+                plt.plot(x, result.data[x], 'ro')
+                total_distance = total_distance + (extrema[int(true_extrema[idx+1])] - x)
+            else:
+                break
+
+        mean = total_distance / len(true_extrema)
+        frequency = 1 / (2 * mean / self.sample_rate)
+        plt.grid()
+        plt.legend()
+        plt.show()
+
+        return(frequency)
+
