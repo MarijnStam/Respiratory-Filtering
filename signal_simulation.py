@@ -111,9 +111,9 @@ def importCSV(filename, num_of_breaths, plot=False):
 def main():
 
     seed(1)
-    num_of_breaths = 5
+    num_of_breaths = 2
     capture_length = num_of_breaths * 3
-    # resp_data = importCSV(filename='./data/walk3.csv', num_of_breaths=num_of_breaths, plot=True)
+    resp_data = importCSV(filename='./data/walk3.csv', num_of_breaths=num_of_breaths, plot=True)
     num_samples = sample_rate * capture_length
 
 
@@ -184,7 +184,7 @@ def main():
 
 
 
-    print(signalInterface.advanced_count(sine_gen))
+    print(signalInterface.advanced_count(resp_data))
     # print(signalInterface.original_count(resp_data))
 
 

@@ -335,8 +335,8 @@ class SignalTools:
         extrema = []
         y_dif = []
 
-        maxima = signal.find_peaks(data)
-        minima = signal.find_peaks(-data)    
+        maxima = signal.find_peaks(result.data)
+        minima = signal.find_peaks(-result.data)    
 
         maxima_list = list(maxima[0])
         minima_list = list(minima[0])
@@ -356,7 +356,7 @@ class SignalTools:
 
 
         def threshold_check(data, threshold):
-            print(data, "\n\n")
+            
             y = [i[1] for i in data]
 
             min_distance = min(y)
