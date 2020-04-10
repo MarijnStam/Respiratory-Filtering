@@ -88,7 +88,8 @@ def importCSV(filename, num_of_breaths, plot=False):
     """
     normalized_resp = np.zeros(len(np_resp))
     min_resp = min(np_resp)
-    max_resp = max(np_resp)             
+    max_resp = max(np_resp)
+           
 
     for idx, value in enumerate(np_resp):
         normalized_resp[idx] = (np_resp[idx] - min_resp) / (max_resp - min_resp)
@@ -110,9 +111,9 @@ def importCSV(filename, num_of_breaths, plot=False):
 def main():
 
     seed(1)
-    num_of_breaths = 10
+    num_of_breaths = 5
     capture_length = num_of_breaths * 3
-    resp_data = importCSV(filename='real.csv', num_of_breaths=num_of_breaths, plot=True)
+    # resp_data = importCSV(filename='./data/walk3.csv', num_of_breaths=num_of_breaths, plot=True)
     num_samples = sample_rate * capture_length
 
 
@@ -130,7 +131,8 @@ def main():
     """
     sine_respiratory = signalInterface.sine_generator(5)
     sine_mains = signalInterface.sine_generator(50, 0.1)
-    sine_alias = signalInterface.sine_generator(50)
+    sine_gen = signalInterface.sine_generator(0.4, 0.5)
+    sine_gen_2 = signalInterface.sine_generator(0.2, 0.6)
 
 
 
@@ -151,7 +153,7 @@ def main():
     Input signals
     """
     # respiratory_noisy =  (nk_respiratory + sine_mains) 
-    alias_test = sine_respiratory + sine_alias
+
 
     impulse = signal.unit_impulse(num_samples)
 
@@ -159,12 +161,12 @@ def main():
     """
     Downscaling
     """
-    downsample_factor = 5
+    # downsample_factor = 5
 
-    resp_data_lo = signalInterface.decimate(sine_respiratory, downsample_factor)
-    resp_data_lo2 = signalInterface.downsample(sine_respiratory, downsample_factor)
-    signalInterfaceLowRes = SignalTools(sample_rate//downsample_factor, capture_length)
-    filterInterfaceLowRes = Filters(sample_rate//downsample_factor, capture_length)
+    # resp_data_lo = signalInterface.decimate(sine_respiratory, downsample_factor)
+    # resp_data_lo2 = signalInterface.downsample(sine_respiratory, downsample_factor)
+    # signalInterfaceLowRes = SignalTools(sample_rate//downsample_factor, capture_length)
+    # filterInterfaceLowRes = Filters(sample_rate//downsample_factor, capture_length)
 
     
     """
@@ -178,14 +180,12 @@ def main():
     """
     PLAYGROUND
     """
-    
 
-    result = filterInterface.bandpass(resp_data, lowcut=0.1, highcut=0.5, order=10, ftype="IIR", plot=True)
 
-    
 
-    print(signalInterface.advanced_count(resp_data))
-    print(signalInterface.original_count(resp_data))
+
+    print(signalInterface.advanced_count(sine_gen))
+    # print(signalInterface.original_count(resp_data))
 
 
     print(colored('\nDone', 'green'))

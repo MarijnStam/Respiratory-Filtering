@@ -366,7 +366,7 @@ class Filters:
         if "cutoff" in filtered_dict:
             if(type(filtered_dict.cutoff) != int and type(filtered_dict.cutoff) != float):
                 for i in filtered_dict.cutoff:
-                    plt.axvline(x=i, color='green', linestyle='--', label='Cuttoff=5Hz')      #Support multiple cutoffs for bandpass
+                    plt.axvline(x=i, color='green', linestyle='--', label='Cuttoff=%.2fHz' %(i))      #Support multiple cutoffs for bandpass
             else:
                 plt.axvline(x=filtered_dict.cutoff, color='green', linestyle='--', label='Cuttoff frequentie')
         plt.xlabel('Frequentie (Hz)')

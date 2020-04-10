@@ -273,8 +273,9 @@ class SignalTools:
             The found frequency in the signal.
         """
         filterInterface = filters.Filters(self.sample_rate, self.capture_length)
-        result = filterInterface.bandpass(data, lowcut=0.1, highcut=0.5, order=10, ftype="IIR", plot=False)
+        result = filterInterface.bandpass(data, lowcut=0.1, highcut=0.5, order=5, ftype="IIR", plot=True)
 
+        result.data = result.data[250:len(result.data)]
         maxima = signal.find_peaks(result.data)
         minima = signal.find_peaks(-result.data)
 
@@ -328,50 +329,79 @@ class SignalTools:
     def advanced_count(self, data):
 
         filterInterface = filters.Filters(self.sample_rate, self.capture_length)
-        result = filterInterface.bandpass(data, lowcut=0.1, highcut=0.5, order=10, ftype="IIR", plot=False)
-        maxima = signal.find_peaks(result.data)
-        minima = signal.find_peaks(-result.data)    
+        result = filterInterface.bandpass(data, lowcut=0.1, highcut=0.5, order=5, ftype="IIR", plot=True)
 
-        true_extrema = vertical_diff = np.zeros(0)
+        
+        extrema = []
+        y_dif = []
 
-        plt.figure("Frequentie extractie")
-        plt.title("Geavanceerde count-methode")
-        plt.plot(result.data, label="Gefilterd signaal")
-        plt.xlabel("Amplitude")
-        plt.ylabel("Sample")
+        maxima = signal.find_peaks(data)
+        minima = signal.find_peaks(-data)    
 
-        extrema = np.append(maxima[0], minima[0])  
-        extrema = np.delete(extrema, -1)
+        maxima_list = list(maxima[0])
+        minima_list = list(minima[0])
+        
+        extrema = maxima_list + minima_list
         extrema.sort()
+        print(extrema,"initial list of extrema")
 
-        for idx, i in enumerate(extrema):
-            if(idx < len(extrema)-1):
-                vertical_diff = np.append(vertical_diff, np.abs(result.data[i] - result.data[extrema[idx+1]]))
-            else:
-                break
+        def calculate_diff(extrema):
+            y_dif.clear()
+            for idx, i in enumerate(extrema):
+                if(idx < len(extrema)-1):
+                    y_dif.append((i, np.abs(result.data[i] - result.data[extrema[idx+1]])))
 
-        quartile = np.quantile(vertical_diff, .75)
+            return y_dif
+
+
+
+        def threshold_check(data, threshold):
+            print(data, "\n\n")
+            y = [i[1] for i in data]
+
+            min_distance = min(y)
+            min_index = y.index(min_distance)
+
+            if min_distance < threshold:
+                if min_index == (len(data)-1):
+                    extrema.remove(data[min_index][0])
+                    extrema.pop()
+                    
+                else:
+                    extrema.remove(data[min_index][0])
+                    extrema.remove(data[min_index+1][0])
+            
+                new_y = calculate_diff(extrema)
+                threshold_check(new_y, threshold)
+            
+            return [i[0] for i in data]
+
+                
+
+
+        
+
+        initial_vdiff = calculate_diff(extrema)
+
+        y = [i[1] for i in initial_vdiff]
+        quartile = np.quantile(y, .75)
         Q = 0.3 * quartile
+
+
         plt.axhline(y=Q, color='green', linestyle='--', label='Threshold')    
 
-        for idx, i in enumerate(vertical_diff):
-            if i > Q:
-                true_extrema = np.append(true_extrema, idx)
-
-        total_distance = 0
-        for idx, i in enumerate(true_extrema):
-            if(idx < len(true_extrema)-1):
-                x = extrema[int(i)]
-                plt.plot(x, result.data[x], 'ro')
-                total_distance = total_distance + (extrema[int(true_extrema[idx+1])] - x)
-            else:
-                break
-
-        mean = total_distance / len(true_extrema)
-        frequency = 1 / (2 * mean / self.sample_rate)
-        plt.grid()
-        plt.legend()
+        true_extrema = threshold_check(initial_vdiff, Q)
+       
+        plt.plot(result.data)
+        for i in true_extrema:
+            plt.plot(i, result.data[i], "ro")
         plt.show()
 
-        return(frequency)
+
+
+
+
+
+
+
 
