@@ -301,7 +301,7 @@ class Filters:
         if(ftype == "IIR"):
             sos = signal.butter(order, [normal_low, normal_high], btype='band', analog=False, output='sos')
             b, a = signal.butter(order, [normal_low, normal_high], btype='band', analog=False, output='ba')
-            filtered_data = signal.sosfiltfilt(sos, data)
+            filtered_data = signal.sosfilt(sos, data)
             result = AttrDict(data=filtered_data, sos=sos, name="Bandpass filter", cutoff=[lowcut, highcut], b=b, a=a, ftype="IIR")
         elif(ftype == "FIR"):
             b = signal.firwin(numtaps=order+1, cutoff=[normal_low, normal_high], pass_zero=False)
@@ -317,14 +317,14 @@ class Filters:
             plt.grid()
 
             ax = plt.subplot(2, 1, 1)
-            plt.plot(data, label="Before filter", color='r')
+            plt.plot(data, label="Voor filter", color='r')
             plt.ylabel("Amplitude")
             plt.legend(loc='upper right')
-            plt.title("Effect of bandpass filter on the signal")
+            plt.title("Effect van een bandpass filter op het signal")
 
 
             plt.subplot(2, 1, 2, sharex=ax, sharey=ax)
-            plt.plot(filtered_data, label="After filter", color='g')
+            plt.plot(filtered_data, label="Na filter", color='g')
             plt.xlabel("Sample")
             plt.ylabel("Amplitude")
             plt.legend(loc="upper right")

@@ -273,7 +273,7 @@ class SignalTools:
             The found frequency in the signal.
         """
         filterInterface = filters.Filters(self.sample_rate, self.capture_length)
-        result = filterInterface.bandpass(data, lowcut=0.1, highcut=0.5, order=5, ftype="IIR", plot=True)
+        result = filterInterface.bandpass(data, lowcut=0.1, highcut=0.5, order=10, ftype="IIR", plot=True)
 
         result.data = result.data[250:len(result.data)]
         maxima = signal.find_peaks(result.data)
@@ -329,7 +329,7 @@ class SignalTools:
     def advanced_count(self, data):
 
         filterInterface = filters.Filters(self.sample_rate, self.capture_length)
-        result = filterInterface.bandpass(data, lowcut=0.1, highcut=0.5, order=5, ftype="IIR", plot=True)
+        result = filterInterface.bandpass(data, lowcut=0.1, highcut=0.5, order=10, ftype="IIR", plot=False)
 
         
         extrema = []
@@ -395,8 +395,24 @@ class SignalTools:
         plt.plot(result.data)
         for i in true_extrema:
             plt.plot(i, result.data[i], "ro")
-        plt.show()
+        
+        resp_cycles = []
+        total_distance = 0
+        for idx, i in enumerate(true_extrema):
+            if idx < len(true_extrema) - 1:
+                total_distance = total_distance + (true_extrema[idx+1] - i)
+        print(true_extrema, "Thresholded extrema")
 
+        
+        if(len(true_extrema) % 2) != 0:
+            resp_cycles = len(true_extrema) - 1
+        else:
+            resp_cycles = len(true_extrema)
+
+        mean = total_distance / resp_cycles
+        frequency = 1 / (2 * (mean) / self.sample_rate)
+        plt.show()
+        return frequency
 
 
 
