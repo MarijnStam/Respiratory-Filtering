@@ -343,7 +343,7 @@ class SignalTools:
         
         extrema = maxima_list + minima_list
         extrema.sort()
-        print(extrema,"initial list of extrema")
+        # print(extrema,"initial list of extrema")
 
         def calculate_diff(extrema):
             y_dif.clear()
@@ -358,7 +358,6 @@ class SignalTools:
         def threshold_check(data, threshold):
             
             y = [i[1] for i in data]
-
             min_distance = min(y)
             min_index = y.index(min_distance)
 
@@ -386,12 +385,12 @@ class SignalTools:
         y = [i[1] for i in initial_vdiff]
         quartile = np.quantile(y, .75)
         Q = 0.3 * quartile
+        # print("Threshold = %8.3f" % (Q))
 
 
         plt.axhline(y=Q, color='green', linestyle='--', label='Threshold')    
 
         true_extrema = threshold_check(initial_vdiff, Q)
-       
         plt.plot(result.data)
         for i in true_extrema:
             plt.plot(i, result.data[i], "ro")
@@ -401,7 +400,7 @@ class SignalTools:
         for idx, i in enumerate(true_extrema):
             if idx < len(true_extrema) - 1:
                 total_distance = total_distance + (true_extrema[idx+1] - i)
-        print(true_extrema, "Thresholded extrema")
+        # print(true_extrema, "Thresholded extrema")
 
         
         if(len(true_extrema) % 2) != 0:
