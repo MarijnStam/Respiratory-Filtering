@@ -112,8 +112,8 @@ def importCSV(filename, capture_length, plot=False):
 def main():
 
     seed(1)
-    capture_length = 60
-    resp_data = importCSV(filename='./data/walk6.csv', capture_length=capture_length, plot=True)
+    capture_length = 30
+    resp_data = importCSV(filename='./data/sit.csv', capture_length=capture_length, plot=True)
     num_samples = sample_rate * capture_length
 
 
@@ -179,13 +179,12 @@ def main():
     """
     PLAYGROUND
     """
-    downsample_factor = 30
+    downsample_factor = 25
 
     lo_signalInterface = SignalTools(sample_rate/downsample_factor, capture_length)
-    low_res = signalInterface.downsample(resp_data, downsample_factor)
-    plt.plot(low_res)
-    plt.show()
-    print(lo_signalInterface.advanced_count(low_res), "Advanced lo-res")
+    low_res = signalInterface.downsample(resp_data, downsample_factor, anti_alias=True)
+
+    # print(lo_signalInterface.advanced_count(low_res), "Advanced lo-res")
 
 
     # filtered_resp = filterInterface.bandpass(resp_data, lowcut=0.1, highcut=0.5, order=5, ftype="IIR", plot=False)
@@ -195,6 +194,9 @@ def main():
     print(signalInterface.advanced_count(resp_data), "Advanced")
     # print(signalInterface.original_count(resp_data), "Original")
 
+    print(lo_signalInterface.advanced_count(low_res), "Advanced lo-res")
+    # print(signalInterface.original_count(resp_data), "Original")
+    plt.show()
 
     print(colored('\nDone', 'green'))
 

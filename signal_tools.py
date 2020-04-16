@@ -328,8 +328,9 @@ class SignalTools:
 
     def advanced_count(self, data):
 
+        plt.figure()
         filterInterface = filters.Filters(self.sample_rate, self.capture_length)
-        result = filterInterface.bandpass(data, lowcut=0.1, highcut=0.5, order=10, ftype="IIR", plot=False)
+        result = filterInterface.bandpass(data, lowcut=0.1, highcut=0.5, order=5, ftype="IIR", plot=False)
 
         
         extrema = []
@@ -410,7 +411,7 @@ class SignalTools:
 
         mean = total_distance / resp_cycles
         frequency = 1 / (2 * (mean) / self.sample_rate)
-        plt.show()
+
         return frequency
 
 
