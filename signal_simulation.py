@@ -112,8 +112,8 @@ def importCSV(filename, capture_length, plot=False):
 def main():
 
     seed(1)
-    capture_length = 0.2
-    # resp_data = importCSV(filename='./data/ecg2.csv', capture_length=capture_length, plot=True)
+    capture_length = 30
+    resp_data = importCSV(filename='./data/sit.csv', capture_length=capture_length, plot=True)
     num_samples = sample_rate * capture_length
 
 
@@ -206,8 +206,10 @@ def main():
     """
     PLAYGROUND
     """
-    downsample_factor = 5
+    downsample_factor = 25
 
+    lo_signalInterface = SignalTools(sample_rate/downsample_factor, capture_length)
+    low_res = signalInterface.downsample(resp_data, downsample_factor, anti_alias=True)
 
     plt.plot(test_sine)
     plt.show()
@@ -242,6 +244,9 @@ def main():
     # print(signalInterface.advanced_count(resp_data), "Advanced")
     # print(signalInterface.original_count(resp_data), "Original")
 
+    print(lo_signalInterface.advanced_count(low_res), "Advanced lo-res")
+    # print(signalInterface.original_count(resp_data), "Original")
+    plt.show()
 
     print(colored('\nDone', 'green'))
 
