@@ -105,16 +105,17 @@ def importCSV(filename, capture_length, plot=False):
         plt.plot(normalized_resp)
         plt.grid()
         plt.show()
-    result = normalized_resp[0:capture_length*sample_rate]
+    result = normalized_resp[0:((capture_length*sample_rate)*2)]
     return result
 
 
 def main():
 
     seed(1)
-    capture_length = 60
-    resp_data = importCSV(filename='./data/walk3.csv', capture_length=capture_length, plot=True)
+    capture_length = 0.2
+    # resp_data = importCSV(filename='./data/ecg2.csv', capture_length=capture_length, plot=True)
     num_samples = sample_rate * capture_length
+
 
 
     """
@@ -131,11 +132,37 @@ def main():
     """
     sine_respiratory = signalInterface.sine_generator(5)
     sine_mains = signalInterface.sine_generator(50, 0.1)
-    sine_gen = signalInterface.sine_generator(0.4, 0.5)
-    sine_gen_2 = signalInterface.sine_generator(0.2, 0.6)
+    sine_gen = signalInterface.sine_generator(40, 0.5)
+    sine_gen_2 = signalInterface.sine_generator(0.4, 4)
 
+    test_sine = sine_gen + sine_gen_2
 
+    test_list = [
+        0.0,         0.53283288, -0.22445042,  0.11678309,  0.81249603,  0.10755423,
+        0.2405022,   1.06012998,  0.45656509,  0.3776056,   1.27436818,  0.81481115,
+        0.53359693,  1.45582163,  1.1738032,   0.71263807,  1.60698931,  1.52481621,
+        0.91723676,  1.73205063,  1.85938729,  1.14803907,  1.83655304,  2.16979796,
+        1.40373966
+    ]
 
+    #Result from IIR DF I Embedded filter of above list
+    iir_df1_list = [
+        6.09401538e-015, 6.53538841e-014, 3.51895217e-013, 1.28921385e-012, 3.66635108e-012,
+        8.72240648e-012, 1.81993622e-011, 3.4369993e-011, 6.00464609e-011, 9.85742044e-011,
+        1.5381485e-010, 2.30121061e-010, 3.32305822e-010, 4.65608024e-010, 6.35655417e-010,
+        8.48426773e-010, 1.11021292e-009, 1.42757828e-009, 1.80732329e-009, 2.25644659e-009,
+        2.78210921e-009, 3.39159989e-009, 4.09229983e-009, 4.89165153e-009, 5.79712278e-009
+    ]
+
+    #Result from IIR DF II Embedded filter of above list
+    iir_df2_list = [
+        6.09401877e-015, 6.5353918e-014, 3.51895352e-013, 1.2892145e-012, 3.66635281e-012,
+        8.72241081e-012, 1.81993691e-011, 3.43700068e-011, 6.00464886e-011, 9.85742599e-011,
+        1.53814905e-010, 2.3012113e-010, 3.32305933e-010, 4.65608163e-010, 6.35655639e-010,
+        8.48427217e-010, 1.1102137e-009, 1.42757961e-009, 1.80732529e-009, 2.25644969e-009,
+        2.78211365e-009, 3.39160544e-009, 4.09230694e-009, 4.89165997e-009, 5.79713388e-009
+
+    ]
 
     """
     Add random (gaussian distributed) noise 
@@ -155,7 +182,7 @@ def main():
     # respiratory_noisy =  (nk_respiratory + sine_mains) 
 
 
-    impulse = signal.unit_impulse(num_samples)
+    # impulse = signal.unit_impulse(num_samples)
 
 
     """
@@ -182,11 +209,38 @@ def main():
     downsample_factor = 5
 
 
-    filtered_resp = filterInterface.bandpass(resp_data, lowcut=0.1, highcut=0.5, order=5, ftype="IIR", plot=False)
-    signalInterface.fft_plot(filtered_resp.data)
+    plt.plot(test_sine)
+    plt.show()
+    # print(test_sine)
+
+    filtered_resp = filterInterface.bandpass(test_sine, lowcut=0.1, highcut=0.5, order=5, ftype="IIR", plot=False)
+    filtered_resp = filterInterface.bandpass(np.flip(filtered_resp.data), lowcut=0.1, highcut=0.5, order=5, ftype="IIR", plot=False)
+    # another_filt =  filterInterface.bandpass(test_sine, lowcut=0.1, highcut=0.5, order=5, ftype="IIRFF", plot=False)
+    # fir_filtered = filterInterface.bandpass(test_sine, lowcut=0.1, highcut=0.5, order=151, ftype="FIR",plot=True)
+
+    nonff = np.flip(filtered_resp.data)
     
-    print(signalInterface.advanced_count(resp_data), "Advanced")
-    print(signalInterface.original_count(resp_data), "Original")
+    plt.figure("IIR Filters")
+    plt.title("Embedded filter IIR I vs II")
+    plt.plot(np.flip(iir_df1_list),'ro', label="IIR DF I")
+    plt.plot(np.flip(iir_df2_list),'ro', color="green", label="IIR DF II")
+    plt.plot(nonff, label="Analyse applicatie")
+
+
+    plt.ylabel("Amplitude")
+    plt.xlabel("Sample #")
+    plt.grid()
+    plt.legend()
+    plt.show()
+
+
+    # print(filtered_resp.a, "\n")
+    
+    # print(filtered_resp.b)
+    # signalInterface.fft_plot(filtered_resp.data)
+    
+    # print(signalInterface.advanced_count(resp_data), "Advanced")
+    # print(signalInterface.original_count(resp_data), "Original")
 
 
     print(colored('\nDone', 'green'))

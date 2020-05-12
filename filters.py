@@ -303,6 +303,11 @@ class Filters:
             b, a = signal.butter(order, [normal_low, normal_high], btype='band', analog=False, output='ba')
             filtered_data = signal.sosfilt(sos, data)
             result = AttrDict(data=filtered_data, sos=sos, name="Bandpass filter", cutoff=[lowcut, highcut], b=b, a=a, ftype="IIR")
+        elif(ftype == "IIRFF"):
+            sos = signal.butter(order, [normal_low, normal_high], btype='band', analog=False, output='sos')
+            b, a = signal.butter(order, [normal_low, normal_high], btype='band', analog=False, output='ba')
+            filtered_data = signal.sosfiltfilt(sos, data)
+            result = AttrDict(data=filtered_data, sos=sos, name="Bandpass filter", cutoff=[lowcut, highcut], b=b, a=a, ftype="IIR")
         elif(ftype == "FIR"):
             b = signal.firwin(numtaps=order+1, cutoff=[normal_low, normal_high], pass_zero=False)
             a = 1.0   #Denominator in an FIR system is 1

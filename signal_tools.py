@@ -273,7 +273,7 @@ class SignalTools:
             The found frequency in the signal.
         """
         filterInterface = filters.Filters(self.sample_rate, self.capture_length)
-        result = filterInterface.bandpass(data, lowcut=0.1, highcut=0.5, order=10, ftype="IIR", plot=True)
+        result = filterInterface.bandpass(data, lowcut=0.6, highcut=4, order=10, ftype="IIR", plot=True)
 
         result.data = result.data[250:len(result.data)]
         maxima = signal.find_peaks(result.data)
@@ -329,7 +329,7 @@ class SignalTools:
     def advanced_count(self, data):
 
         filterInterface = filters.Filters(self.sample_rate, self.capture_length)
-        result = filterInterface.bandpass(data, lowcut=0.1, highcut=0.5, order=10, ftype="IIR", plot=False)
+        result = filterInterface.bandpass(data, lowcut=0.6, highcut=4, order=10, ftype="IIR", plot=False)
 
         
         extrema = []
@@ -385,7 +385,7 @@ class SignalTools:
 
         y = [i[1] for i in initial_vdiff]
         quartile = np.quantile(y, .75)
-        Q = 0.3 * quartile
+        Q = 0.6 * quartile
 
 
         plt.axhline(y=Q, color='green', linestyle='--', label='Threshold')    
