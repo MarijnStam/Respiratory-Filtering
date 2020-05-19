@@ -102,11 +102,10 @@ class SignalTools:
         #Set the x linear axis space to the amount of frequency bins in the FFT
         #Frequency bins are determined by the frequency resolution, or sampling_rate/N
 
-        #TODO Normalize the FFT results
 
-
-        max_idx = np.argmax(modulus)
+        max_idx = np.argmax(modulus)                
         peak = max_idx * frequency_resolution
+        #Determine the most prevelant frequency
         
 
         plt.figure('Fast Fourier transform')
@@ -123,10 +122,6 @@ class SignalTools:
 
         result = AttrDict(x=xf, y=modulus, freq=frequency_resolution)
         return result
-
-        #TODO Make FFT function return the result rather than plotting in function
-        #TODO Include the FFT peaks in the result
-        
 
 
 
@@ -189,11 +184,14 @@ class SignalTools:
         filterInterface = filters.Filters(self.sample_rate, self.capture_length)
         slice_int = chunk_size//3
         min_maxed = np.zeros(slice_int)
+
         if(anti_alias):
             antialias = filterInterface.lowpass(data, nyquist-0.01, order=8, ftype="IIR", plot=False)
             it = iter(antialias.data)
         else:
             it = iter(data)
+        #Apply an anti-aliasing filter by default
+
         sliced_data = list(iter(lambda: tuple(islice(it, chunk_size)), ()))
         downsampled = np.zeros(len(sliced_data))
 
@@ -203,6 +201,7 @@ class SignalTools:
             to_sort.sort()
             min_maxed = to_sort[slice_int:chunk_size-slice_int]
             downsampled[idx] = np.average(min_maxed)
+        #Determine the average of the chunk in the original array and use this as the new value in the downsampled array
 
         print('Size of original data buffer: \n', len(data))
         print('Size of downsampled data buffer: \n', len(downsampled))
@@ -210,26 +209,26 @@ class SignalTools:
         return downsampled
 
     def decimate(self, data, factor, anti_alias=True):
-            """
-            Returns an array which is decimated by a factor. Decimation simply means that out of every M samples, 1 is kept and the rest is discarded,
-            M is the factor.
+        """
+        Returns an array which is decimated by a factor. Decimation simply means that out of every M samples, 1 is kept and the rest is discarded,
+        M is the factor.
 
-            Parameters
-            ----------
-            data : `array_like`
-                1D array to be decimated\n
-            factor: `int` 
-                Factor by which the array is decimated.\n
-            anti_alias: `bool`
-                Defaults to True. Applies a low-pass filter to the signal before decimation to prevent aliasing.
-                Skips this step when False. 
+        Parameters
+        ----------
+        data : `array_like`
+            1D array to be decimated\n
+        factor: `int` 
+            Factor by which the array is decimated.\n
+        anti_alias: `bool`
+            Defaults to True. Applies a low-pass filter to the signal before decimation to prevent aliasing.
+            Skips this step when False. 
 
-            Returns
-            ----------
-            downsampled : `array_like`
-                The decimated array.
+        Returns
+        ----------
+        downsampled : `array_like`
+            The decimated array.
 
-            """
+        """
             downsampled_rate = self.sample_rate / factor
             nyquist = downsampled_rate/2
             filterInterface = filters.Filters(self.sample_rate, self.capture_length)
@@ -241,11 +240,12 @@ class SignalTools:
                 it = iter(data)
             sliced_data = list(iter(lambda: tuple(islice(it, factor)), ()))
             downsampled = np.zeros(len(sliced_data))
-
+            #Apply an anti-aliasing filter by default
 
             for idx, value in enumerate(sliced_data):
                 to_decimate = list(value)
                 downsampled[idx] = to_decimate[0]
+
 
             print('Size of original data buffer: \n', len(data))
             print('Size of decimated data buffer: \n', len(downsampled))
@@ -259,7 +259,7 @@ class SignalTools:
         """
         Original counting method
         This function implements the original counting method to count respiratory cycles as described in:
-         https://link.springer.com/article/10.1007/s10439-007-9428-1
+            https://link.springer.com/article/10.1007/s10439-007-9428-1
         
         Note that this method will apply a bandpass filter on the signal in range 0.1Hz - 0.5Hz. 
         
@@ -272,23 +272,24 @@ class SignalTools:
         result : `float`\n
             The found frequency in the signal.
         """
+        true_maxima = true_minima = resp_cycles = np.zeros(0)
         filterInterface = filters.Filters(self.sample_rate, self.capture_length)
-        result = filterInterface.bandpass(data, lowcut=0.6, highcut=4, order=10, ftype="IIR", plot=True)
+        result = filterInterface.bandpass(data, lowcut=0.5, highcut=5, order=10, ftype="IIR", plot=True)
+        #Apply the filter suggested by the paper.
 
-        result.data = result.data[250:len(result.data)]
+
         maxima = signal.find_peaks(result.data)
         minima = signal.find_peaks(-result.data)
-
-        ordinates = np.zeros(len(maxima[0]))
-        true_maxima = true_minima = resp_cycles = np.zeros(0)
+        #Find the extrema of the signal
 
         ordinates = np.zeros(len(maxima[0]))
         for idx, i in enumerate(maxima[0]):
             ordinates[idx] = result.data[i]
+        #Find the ordinate values of all maxima
 
         quartile = np.quantile(ordinates, .75)
         Q = 0.2 * quartile
-
+        #Define a threshold Q as 0.2 * third quartile of the ordinates
 
         plt.figure("Frequentie extractie")
         plt.title("Originele count-methode")
@@ -300,53 +301,90 @@ class SignalTools:
                 if result.data[j] > Q:
                     true_maxima = np.append(true_maxima, j)
                     plt.plot(j, result.data[j], "ro")
-
+        #True maxima are defined to be a maxima above Q
 
         for k in minima:
             for l in k:
                 if result.data[l] < 0:
                     true_minima = np.append(true_minima, l)
                     plt.plot(l, result.data[l], "ro", color="green")
+        #True minima are defined to be a minima below 0
 
         total_distance = 0
         for idx, i in enumerate(true_maxima):
             if(idx < len(true_maxima)-1):
                 count = ((true_maxima[idx] < true_minima) & (true_minima < true_maxima[idx+1])).sum()
+                #Find whether a respiratory cycle is present.
+                #this is defined to start and end at a true maxima, only and only if there is a single true minima between these two.
                 if(count == 1):
                     resp_cycles = np.append(resp_cycles, true_maxima[idx])
                     total_distance = total_distance + (true_maxima[idx+1] - true_maxima[idx])
+                #Add the distance of the respiratory cycle to the running total.
             else:
                 break
+        
 
         plt.grid()
         plt.legend()
         plt.show()
         mean = total_distance / len(resp_cycles)
-
         frequency = 1 / (mean / self.sample_rate)
+        #Determine the respiratory rate from the total distance and amount of respiratory cycles.
+
         return frequency
 
     def advanced_count(self, data):
+        """
+        Advanced counting method
+        This function implements the original counting method to count respiratory cycles as described in:
+            https://link.springer.com/article/10.1007/s10439-007-9428-1
+        
+        Note that this method will apply a bandpass filter on the signal in range 0.1Hz - 0.5Hz. 
+        
+        Parameters
+        ----------
+        data : `array_like`\n       
+            The signal from which the frequency is to be extracted.
+        Returns
+        ----------
+        result : `float`\n
+            The found frequency in the signal.
+        """
 
         plt.figure()
         filterInterface = filters.Filters(self.sample_rate, self.capture_length)
         result = filterInterface.bandpass(data, lowcut=0.1, highcut=0.5, order=5, ftype="IIR", plot=False)
+        #Apply the filter as suggested by the paper
 
         
         extrema = []
         y_dif = []
 
         maxima = signal.find_peaks(result.data)
-        minima = signal.find_peaks(-result.data)    
+        minima = signal.find_peaks(-result.data)
+        #Find the extrema in the signal    
 
         maxima_list = list(maxima[0])
         minima_list = list(minima[0])
+        #Cast the tuples as returned by the find_peaks() function to lists for further processing
         
         extrema = maxima_list + minima_list
         extrema.sort()
-        # print(extrema,"initial list of extrema")
+        #Sort all the extrema. This will give a list with all the extrema in sequence.
 
         def calculate_diff(extrema):
+            """
+            Calcultate the vertical (ordinate) differences between sequential extrema
+
+            Parameters
+            ----------
+            extrema : `array_like`\n       
+                The list of extrema
+            Returns
+            ----------
+            result : `array_like`\n
+                The ordinate differences between the sequential extrema.
+            """
             y_dif.clear()
             for idx, i in enumerate(extrema):
                 if(idx < len(extrema)-1):
@@ -357,10 +395,25 @@ class SignalTools:
 
 
         def threshold_check(data, threshold):
+            """
+            Recursive function to minimize the extrema list to only contain pairs with an ordinate difference above the threshold
+
+            Parameters
+            ----------
+            data : `array_like`\n       
+                The list of extrema
+            threshold : `float`\n       
+                The threshold for a minimum ordinate difference between two extrema.
+            Returns
+            ----------
+            result : `array_like`\n
+                The list of extrema, all sequential extrema have an ordinate difference higher than the threshold.
+            """
             
             y = [i[1] for i in data]
             min_distance = min(y)
             min_index = y.index(min_distance)
+            #Find the smallest ordinate difference between two sequential extrema
 
             if min_distance < threshold:
                 if min_index == (len(data)-1):
@@ -370,28 +423,29 @@ class SignalTools:
                 else:
                     extrema.remove(data[min_index][0])
                     extrema.remove(data[min_index+1][0])
+            #If the smallest ordinate difference is smaller than the threshold, remove the pair
             
                 new_y = calculate_diff(extrema)
+                #As a pair is deleted, new pairs are introduced and new vertical differences need to be calculated
                 threshold_check(new_y, threshold)
+                #Check the threshold again with the new vertical differences until all is above the threshold
             
             return [i[0] for i in data]
 
                 
-
-
-        
-
         initial_vdiff = calculate_diff(extrema)
 
         y = [i[1] for i in initial_vdiff]
         quartile = np.quantile(y, .75)
         Q = 0.3 * quartile
-        # print("Threshold = %8.3f" % (Q))
+        #Define the threshold Q as 0.3 * the third quartile of the vertical differences
 
 
         plt.axhline(y=Q, color='green', linestyle='--', label='Threshold')    
 
         true_extrema = threshold_check(initial_vdiff, Q)
+        #Minimize the extrema until each pair of extrema satisfies the vertical difference threshold
+
         plt.plot(result.data)
         for i in true_extrema:
             plt.plot(i, result.data[i], "ro")
@@ -401,16 +455,19 @@ class SignalTools:
         for idx, i in enumerate(true_extrema):
             if idx < len(true_extrema) - 1:
                 total_distance = total_distance + (true_extrema[idx+1] - i)
-        # print(true_extrema, "Thresholded extrema")
+        #Running total for the absicca difference between extrema
+        
 
         
         if(len(true_extrema) % 2) != 0:
             resp_cycles = len(true_extrema) - 1
         else:
             resp_cycles = len(true_extrema)
+        #Determine amount of respiratory cycles
 
         mean = total_distance / resp_cycles
         frequency = 1 / (2 * (mean) / self.sample_rate)
+        #Calculate the respiratory rate from the amount of respiratory cycles and the total distance which these cover.
 
         return frequency
 

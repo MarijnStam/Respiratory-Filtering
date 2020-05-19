@@ -258,4 +258,3 @@ if __name__ == '__main__':
         print(colored('\nDone, interrupted', 'green'))    
         sys.exit(0)
 
-#TODO Write tests!
