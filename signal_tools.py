@@ -229,28 +229,28 @@ class SignalTools:
             The decimated array.
 
         """
-            downsampled_rate = self.sample_rate / factor
-            nyquist = downsampled_rate/2
-            filterInterface = filters.Filters(self.sample_rate, self.capture_length)
+        downsampled_rate = self.sample_rate / factor
+        nyquist = downsampled_rate/2
+        filterInterface = filters.Filters(self.sample_rate, self.capture_length)
 
-            if(anti_alias):
-                antialias = filterInterface.lowpass(data, nyquist-0.01, order=8, ftype="IIR", plot=False)
-                it = iter(antialias.data)
-            else:
-                it = iter(data)
-            sliced_data = list(iter(lambda: tuple(islice(it, factor)), ()))
-            downsampled = np.zeros(len(sliced_data))
-            #Apply an anti-aliasing filter by default
+        if(anti_alias):
+            antialias = filterInterface.lowpass(data, nyquist-0.01, order=8, ftype="IIR", plot=False)
+            it = iter(antialias.data)
+        else:
+            it = iter(data)
+        sliced_data = list(iter(lambda: tuple(islice(it, factor)), ()))
+        downsampled = np.zeros(len(sliced_data))
+        #Apply an anti-aliasing filter by default
 
-            for idx, value in enumerate(sliced_data):
-                to_decimate = list(value)
-                downsampled[idx] = to_decimate[0]
+        for idx, value in enumerate(sliced_data):
+            to_decimate = list(value)
+            downsampled[idx] = to_decimate[0]
 
 
-            print('Size of original data buffer: \n', len(data))
-            print('Size of decimated data buffer: \n', len(downsampled))
+        print('Size of original data buffer: \n', len(data))
+        print('Size of decimated data buffer: \n', len(downsampled))
 
-            return downsampled
+        return downsampled
         
 
 
