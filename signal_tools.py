@@ -274,7 +274,7 @@ class SignalTools:
         """
         true_maxima = true_minima = resp_cycles = np.zeros(0)
         filterInterface = filters.Filters(self.sample_rate, self.capture_length)
-        result = filterInterface.bandpass(data, lowcut=0.5, highcut=5, order=10, ftype="IIR", plot=True)
+        result = filterInterface.bandpass(data, lowcut=0.1, highcut=0.5, order=10, ftype="IIR", plot=True)
         #Apply the filter suggested by the paper.
 
 
